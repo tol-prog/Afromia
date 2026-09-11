@@ -38,8 +38,9 @@ function fontPath(name) {
 const BATCH_CODE_PREFIX_DEFAULT = 'A10';
 const ASSESSMENT_CENTER = 'Afromia DWTC';
 const OCCUPATION = 'Domestic Works';
-const APPLICATION_FEE = '303birr';
+const APPLICATION_FEE = '349';
 const PRACTICAL_EXPERIENCE_DAYS = '21';
+const INSTITUTE_PHONE = '0966711456';
 
 /** Replicates the sample ID cards' (inconsistent) numbering: 3-digit for
  * sn < 10, 4-digit for sn >= 10. See Batch 10 delivery notes for why this
@@ -129,6 +130,7 @@ const REQUIRED_FIELDS = {
   applicationForm: ['fullName', 'sex', 'age', 'region', 'cityZone', 'woredaKebele', 'phone'],
   recordBook: ['fullName'],
   cocReport: ['fullName', 'sex'],
+  cocExcelReport: ['fullName', 'sex', 'age', 'educationLevel', 'region', 'cityZone', 'woredaKebele'],
 };
 
 function completeness(shapedTrainees) {
@@ -158,4 +160,5 @@ module.exports = {
   APPLICATION_FEE,
   PRACTICAL_EXPERIENCE_DAYS,
   BATCH_CODE_PREFIX_DEFAULT,
+  INSTITUTE_PHONE,
 };

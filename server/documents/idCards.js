@@ -79,6 +79,17 @@ function drawCard(page, toPage, fonts, seal, t, assessmentBranch) {
     const p1 = toPage(lx1, ly1);
     page.drawLine({ start: p0, end: p1, color, thickness });
   };
+  /** Draws a "Label  value" pair with the value underlined (a blank line
+   * when the value is empty, so the card still shows a fillable slot
+   * rather than looking broken). */
+  const labeledUnderlineField = (lx, ly, label, value, size, font, minWidth = 26) => {
+    text(lx, ly, label, size, font);
+    const labelW = font.widthOfTextAtSize(label, size);
+    const valueX = lx + labelW;
+    if (value) text(valueX, ly, value, size, font);
+    const valueW = Math.max(font.widthOfTextAtSize(value || '', size), minWidth);
+    line(valueX, ly - 2.6, valueX + valueW, ly - 2.6, BLACK, 0.6);
+  };
 
   rect(2, 2, CARD_W - 4, CARD_H - 4, NAVY, 1.6);
   rect(6, 6, CARD_W - 12, CARD_H - 12, NAVY, 0.6);
@@ -115,8 +126,8 @@ function drawCard(page, toPage, fonts, seal, t, assessmentBranch) {
   text(56, fy, t.regNo, 9.6, times);
   fy -= lineGap;
 
-  text(16, fy, `Age  ${t.age != null ? t.age : ''}`, 9.6, timesBoldItalic);
-  text(120, fy, `Sex  ${t.sex || ''}`, 9.6, timesBoldItalic);
+  labeledUnderlineField(16, fy, 'Age  ', t.age != null ? String(t.age) : '', 9.6, timesBoldItalic);
+  labeledUnderlineField(120, fy, 'Sex  ', t.sex || '', 9.6, timesBoldItalic);
   fy -= lineGap;
 
   text(16, fy, `Occupation: ${OCCUPATION}`, 9.6, timesBoldItalic);

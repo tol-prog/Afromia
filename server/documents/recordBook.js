@@ -48,7 +48,17 @@ function drawAttendanceTable(page, x, topY, width, height, font, bold) {
   const colComment = 60;
   const halfCols = [colDate, colTime, colAmpm, colSign, colTrainer, colComment];
   const halfW = halfCols.reduce((a, b) => a + b, 0);
-  const rowH = height / 12;
+  const DATA_ROWS = 11;
+  // The header needs room for a two-line label ("Time" over "AM"/"PM",
+  // "Trainee's" over "Sign") -- giving it the same height as a plain
+  // one-line data row (as the old height/12 split did) left no room for
+  // the second line or for the divider between the two lines, so both
+  // got crammed together and the "AM"/"PM" sub-labels ended up struck
+  // through by that divider. The header row is now taller than a data
+  // row on purpose, and the two label lines / divider are laid out to
+  // fit inside it with clear space.
+  const headerH = Math.min(24, height * 0.16);
+  const rowH = (height - headerH) / DATA_ROWS;
 
   const centerText = (text, cx, y, size, f) => {
     const w = f.widthOfTextAtSize(text, size);
@@ -57,53 +67,56 @@ function drawAttendanceTable(page, x, topY, width, height, font, bold) {
 
   for (let half = 0; half < 2; half++) {
     const hx = x + half * (halfW + 4);
-    page.drawRectangle({ x: hx, y: topY - rowH, width: halfW, height: rowH, borderColor: BLACK, borderWidth: 0.8 });
-    const topLabelY = topY - rowH * 0.38;
-    const bottomLabelY = topY - rowH * 0.82;
+    page.drawRectangle({ x: hx, y: topY - headerH, width: halfW, height: headerH, borderColor: BLACK, borderWidth: 0.8 });
 
-    centerText('Date', hx + colDate / 2, topY - rowH / 2 - 3, 7.2, bold);
-    centerText('Time', hx + colDate + (colTime + colAmpm) / 2, topLabelY, 7.2, bold);
-    centerText("Trainee's", hx + colDate + colTime + colAmpm + colSign / 2, topY - 12, 7.2, bold);
-    centerText('Sign', hx + colDate + colTime + colAmpm + colSign / 2, topY - 20, 7.2, bold);
-    centerText("Trainer's", hx + colDate + colTime + colAmpm + colSign + colTrainer / 2, topY - rowH / 2 - 3, 7.2, bold);
-    centerText('Comment', hx + colDate + colTime + colAmpm + colSign + colTrainer + colComment / 2, topY - rowH / 2 - 3, 7.2, bold);
-    centerText('AM', hx + colDate + colTime / 2, bottomLabelY, 6.4, font);
-    centerText('PM', hx + colDate + colTime + colAmpm / 2, bottomLabelY, 6.4, font);
+    const midY = topY - headerH / 2; // divider between the two header sub-lines
+    const topLineY = topY - headerH * 0.34; // baseline for the header's top line
+    const bottomLineY = topY - headerH * 0.78; // baseline for the header's bottom line
+    const singleLineY = topY - headerH / 2 - 2.6; // vertically-centered baseline for one-line headers
+
+    centerText('Date', hx + colDate / 2, singleLineY, 7.4, bold);
+    centerText('Time', hx + colDate + (colTime + colAmpm) / 2, topLineY, 7.4, bold);
+    centerText('AM', hx + colDate + colTime / 2, bottomLineY, 6.6, font);
+    centerText('PM', hx + colDate + colTime + colAmpm / 2, bottomLineY, 6.6, font);
+    centerText("Trainee's", hx + colDate + colTime + colAmpm + colSign / 2, topLineY, 7.4, bold);
+    centerText('Sign', hx + colDate + colTime + colAmpm + colSign / 2, bottomLineY, 7.4, bold);
+    centerText("Trainer's", hx + colDate + colTime + colAmpm + colSign + colTrainer / 2, singleLineY, 7.4, bold);
+    centerText('Comment', hx + colDate + colTime + colAmpm + colSign + colTrainer + colComment / 2, singleLineY, 7.4, bold);
 
     let vx = hx;
     for (const w of [colDate, colTime, colAmpm, colSign, colTrainer]) {
       vx += w;
-      page.drawLine({ start: { x: vx, y: topY - rowH }, end: { x: vx, y: topY }, thickness: 0.8, color: BLACK });
+      page.drawLine({ start: { x: vx, y: topY - headerH }, end: { x: vx, y: topY }, thickness: 0.8, color: BLACK });
     }
+    // Horizontal divider between "Time" and "AM"/"PM" -- only spans the
+    // Time+Ampm columns, sitting cleanly between the two text baselines.
     page.drawLine({
-      start: { x: hx + colDate, y: topY - rowH * 0.55 },
-      end: { x: hx + colDate + colTime + colAmpm, y: topY - rowH * 0.55 },
+      start: { x: hx + colDate, y: midY },
+      end: { x: hx + colDate + colTime + colAmpm, y: midY },
       thickness: 0.8,
       color: BLACK,
     });
+    // Vertical divider splitting "Time" into AM / PM -- only below the
+    // "Time" label, i.e. from the horizontal divider down to the header's
+    // bottom edge (matches the AM/PM divider continuing through the data
+    // rows below).
     page.drawLine({
-      start: { x: hx + colDate + colTime, y: topY - rowH * 0.55 },
-      end: { x: hx + colDate + colTime, y: topY - rowH },
+      start: { x: hx + colDate + colTime, y: midY },
+      end: { x: hx + colDate + colTime, y: topY - headerH },
       thickness: 0.8,
       color: BLACK,
     });
 
-    for (let r = 0; r < 11; r++) {
-      const rowNum = half * 11 + r + 1;
-      const ryTop = topY - rowH * (r + 2);
-      page.drawRectangle({ x: hx, y: ryTop, width: halfW, height: rowH, borderColor: BLACK, borderWidth: 0.8 });
+    for (let r = 0; r < DATA_ROWS; r++) {
+      const rowNum = half * DATA_ROWS + r + 1;
+      const ryTop = topY - headerH - rowH * r;
+      page.drawRectangle({ x: hx, y: ryTop - rowH, width: halfW, height: rowH, borderColor: BLACK, borderWidth: 0.8 });
       let vx2 = hx;
       for (const w of [colDate, colTime, colAmpm, colSign, colTrainer]) {
         vx2 += w;
-        page.drawLine({ start: { x: vx2, y: ryTop }, end: { x: vx2, y: ryTop + rowH }, thickness: 0.8, color: BLACK });
+        page.drawLine({ start: { x: vx2, y: ryTop - rowH }, end: { x: vx2, y: ryTop }, thickness: 0.8, color: BLACK });
       }
-      page.drawLine({
-        start: { x: hx + colDate + colTime, y: ryTop },
-        end: { x: hx + colDate + colTime, y: ryTop + rowH },
-        thickness: 0.8,
-        color: BLACK,
-      });
-      centerText(`${rowNum}.`, hx + colDate / 2, ryTop + rowH / 2 - 3, 7.6, font);
+      centerText(`${rowNum}.`, hx + colDate / 2, ryTop - rowH / 2 - 2.6, 7.6, font);
     }
   }
 }

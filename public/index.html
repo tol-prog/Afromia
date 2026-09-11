@@ -737,8 +737,20 @@ function openTraineeForm(existing){
         '<div class="field"><label>Phone</label><input id="f-phone" value="'+esc(existing?.phone||'')+'"></div>' +
       '</div>' +
       '<div class="field-row">' +
-        '<div class="field"><label>Gender</label><select id="f-gender"><option'+(existing?.gender==='Female'?' selected':'')+'>Female</option><option'+(existing?.gender==='Male'?' selected':'')+'>Male</option></select></div>' +
+        '<div class="field"><label>Gender</label><select id="f-gender"><option value=""'+(!existing?.gender?' selected':'')+'>— Select —</option><option'+(existing?.gender==='Female'?' selected':'')+'>Female</option><option'+(existing?.gender==='Male'?' selected':'')+'>Male</option></select></div>' +
+        '<div class="field"><label>Age</label><input id="f-age" type="number" min="0" max="120" value="'+esc(existing?.age!=null?existing.age:'')+'"></div>' +
+      '</div>' +
+      '<div class="field-row">' +
         '<div class="field"><label>Region / origin</label><input id="f-region" value="'+esc(existing?.region||'')+'"></div>' +
+        '<div class="field"><label>City / Zone</label><input id="f-cityzone" value="'+esc(existing?.cityZone||'')+'"></div>' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label>Woreda / Kebele</label><input id="f-woredakebele" value="'+esc(existing?.woredaKebele||'')+'"></div>' +
+        '<div class="field"><label>Education level</label><input id="f-educationlevel" value="'+esc(existing?.educationLevel!=null?existing.educationLevel:'')+'"></div>' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label>Labour ID number</label><input id="f-labourid" value="'+esc(existing?.labourId||'')+'"></div>' +
+        '<div class="field"><label>Passport No.</label><input id="f-passportno" value="'+esc(existing?.passportNo||'')+'"></div>' +
       '</div>' +
       '<div class="field-row">' +
         '<div class="field"><label>Branch</label><select id="f-branch">'+branches.map(b=>'<option value="'+b.id+'"'+(b.id===bId?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select></div>' +
@@ -760,9 +772,14 @@ function openTraineeForm(existing){
     onSubmit: async ()=>{
       const name = document.getElementById('f-name').value.trim();
       if(!name){ toast('Name is required'); return; }
+      const ageVal = document.getElementById('f-age').value;
       const body = {
         name, phone:document.getElementById('f-phone').value.trim(), gender:document.getElementById('f-gender').value,
+        age: ageVal===''?null:Number(ageVal),
         region:document.getElementById('f-region').value.trim(), branchId:document.getElementById('f-branch').value,
+        cityZone:document.getElementById('f-cityzone').value.trim(), woredaKebele:document.getElementById('f-woredakebele').value.trim(),
+        educationLevel:document.getElementById('f-educationlevel').value.trim(), labourId:document.getElementById('f-labourid').value.trim(),
+        passportNo:document.getElementById('f-passportno').value.trim(),
         cohortId:document.getElementById('f-cohort').value||null, intakeDate:document.getElementById('f-intake').value,
         status:document.getElementById('f-status').value, idStatus:document.getElementById('f-id').value,
         medicalStatus:document.getElementById('f-medical').value, policeStatus:document.getElementById('f-police').value,
@@ -811,7 +828,7 @@ function renderTraineeDetail(main){
   if(sub==='overview'){
     body.innerHTML =
       '<div class="grid" style="grid-template-columns:1fr 1fr;">' +
-        infoCard('Personal', [['Phone',t.phone||'—'],['Gender',t.gender||'—'],['Region / origin',t.region||'—'],['Intake date',fmtDate(t.intakeDate)]]) +
+        infoCard('Personal', [['Phone',t.phone||'—'],['Gender',t.gender||'—'],['Age',t.age!=null?t.age:'—'],['Region / origin',t.region||'—'],['City / Zone',t.cityZone||'—'],['Woreda / Kebele',t.woredaKebele||'—'],['Education level',t.educationLevel!=null&&t.educationLevel!==''?t.educationLevel:'—'],['Labour ID / Passport',[t.labourId,t.passportNo].filter(Boolean).join(' · ')||'—'],['Intake date',fmtDate(t.intakeDate)]]) +
         infoCard('Readiness', [['ID / kebele card',pillForDoc(t.idStatus)],['Medical clearance',pillForDoc(t.medicalStatus)],['Police clearance',pillForDoc(t.policeStatus)],['CoC status',pillForCoc(t.cocStatus)+(t.cocExamDate?'  ·  exam '+fmtDate(t.cocExamDate):'')+(t.cocCertNumber?'  ·  #'+esc(t.cocCertNumber):'')]]) +
       '</div>' +
       infoCard('Payment', [['Status',pillForPayment(t.paymentStatus)],['Amount',fmtBirr(t.paymentAmount)],['Payment date',fmtDate(t.paymentDate)],['Receipt ref',t.receiptRef||'—'],['Notes',t.paymentNotes||'—']]) +
@@ -1515,6 +1532,7 @@ const REPORT_DOC_TYPES = [
   {key:'idCard', label:'ID cards', endpoint:'id-cards.pdf'},
   {key:'applicationForm', label:'Application forms', endpoint:'application-forms.pdf'},
   {key:'recordBook', label:'Record books', endpoint:'record-books.pdf'},
+  {key:'cocExcelReport', label:'COC Excel report (all trainees)', endpoint:'coc-excel-report.xlsx'},
 ];
 
 function renderReports(main){

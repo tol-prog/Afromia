@@ -19,6 +19,7 @@ const { generateIdCardsPdf } = require('./idCards');
 const { generateApplicationFormsPdf } = require('./applicationForm');
 const { generateRecordBooksPdf } = require('./recordBook');
 const { generateCocReportPdf } = require('./cocReport');
+const { generateCocExcelReport } = require('./cocExcelReport');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -68,6 +69,28 @@ router.get('/:cohortId/:docType.pdf', async (req, res) => {
     const codeSlug = (loaded.cohort.code || cohortId).replace(/\s+/g, '');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${builder.filename(codeSlug)}"`);
+    res.send(buffer);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to generate document' });
+  }
+});
+
+// The "major" COC Excel report -- one row per trainee, in the same layout
+// as the original AFRBatch_010_New.xlsx template -- needs no extra input
+// beyond the cohort id, so (like the 4 PDF downloads) it's a plain GET.
+router.get('/:cohortId/coc-excel-report.xlsx', async (req, res) => {
+  try {
+    const { cohortId } = req.params;
+    const loaded = await loadCohortAndTrainees(cohortId);
+    if (!loaded) return res.status(404).json({ error: 'Cohort not found' });
+    if (!loaded.trainees.length) return res.status(400).json({ error: 'This cohort has no trainees yet' });
+
+    const cohortData = shapeCohortData(loaded.cohort, loaded.trainees);
+    const buffer = await generateCocExcelReport(cohortData);
+    const codeSlug = (loaded.cohort.code || cohortId).replace(/\s+/g, '');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${codeSlug}_COC_Excel_Report.xlsx"`);
     res.send(buffer);
   } catch (e) {
     console.error(e);
