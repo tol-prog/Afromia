@@ -190,6 +190,11 @@
 <div id="modal-root"></div>
 <div id="toast-root"></div>
 
+<!-- SheetJS: parses the batch spreadsheet (.xlsx/.csv) client-side for the
+     Reporting tab's "Import batch data" step, so the server doesn't need an
+     untested xlsx-parsing dependency of its own. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <script>
 /* =========================================================================
    Afromia Training Manager — domestic-worker training-center & finance management
@@ -225,6 +230,34 @@ async function apiFetch(path, opts) {
   try { body = await res.json(); } catch (e) {}
   if (!res.ok) throw new Error((body && body.error) || ('Request failed (' + res.status + ')'));
   return body;
+}
+
+/** Downloads a protected endpoint's response as a file. Plain <a href>
+ * links can't carry the Authorization bearer token, so report downloads
+ * fetch the PDF as a blob and save it via a throwaway object URL instead
+ * (same pattern the existing CSV export already uses). */
+async function downloadFile(path, opts, fallbackFilename) {
+  opts = opts || {};
+  const res = await fetch(path, {
+    method: opts.method || 'GET',
+    headers: Object.assign({ 'Content-Type': 'application/json' }, authHeaders(), opts.headers || {}),
+    body: opts.body,
+  });
+  if (res.status === 401) { onUnauthorized(); throw new Error('Not authenticated'); }
+  if (!res.ok) {
+    let msg = 'Request failed (' + res.status + ')';
+    try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (e) {}
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const m = /filename="([^"]+)"/.exec(disposition);
+  const filename = (m && m[1]) || fallbackFilename || 'download.pdf';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 const dbListenerRegistry = [];
@@ -302,6 +335,9 @@ const state = {
   traineeDetail: null, // traineeId
   cohortTabs: {}, // cohortId -> subtab
   traineeTabs: {},
+  reportsCohortId: null,
+  reportsStatus: null, // last-fetched /api/reports/:id/status result
+  reportsBusy: false,
 };
 
 const root = document.getElementById('root');
@@ -1474,6 +1510,13 @@ function rateField(key,label,val){
 /* reports (admin)                                                         */
 /* ---------------------------------------------------------------------- */
 
+const REPORT_DOC_TYPES = [
+  {key:'certificate', label:'Completion certificates', endpoint:'certificates.pdf'},
+  {key:'idCard', label:'ID cards', endpoint:'id-cards.pdf'},
+  {key:'applicationForm', label:'Application forms', endpoint:'application-forms.pdf'},
+  {key:'recordBook', label:'Record books', endpoint:'record-books.pdf'},
+];
+
 function renderReports(main){
   const trainees = state.trainees;
   const byBranch = {};
@@ -1487,12 +1530,14 @@ function renderReports(main){
     if(t.paymentStatus==='Paid') row.paid++;
   });
   main.innerHTML =
-    '<div class="topbar"><div><h1>Reports</h1><div class="desc">Compliance summary and data export.</div></div>' +
+    '<div class="topbar"><div><h1>Reports</h1><div class="desc">Compliance summary, batch document generation, and data export.</div></div>' +
       '<div class="topbar-actions"><button class="btn btn-primary" id="btn-export">Export trainees (CSV)</button></div></div>' +
     '<div class="card"><div class="card-head"><h2>Branch compliance summary</h2></div>' +
       '<div class="table-wrap"><table class="tbl"><thead><tr><th>Branch</th><th>Total</th><th>Active</th><th>Paid</th><th>Docs fully cleared</th><th>CoC passed</th></tr></thead><tbody>' +
       Object.values(byBranch).map(r=>'<tr><td class="row-name">'+esc(r.name)+'</td><td class="num">'+r.total+'</td><td class="num">'+r.active+'</td><td class="num">'+r.paid+'</td><td class="num">'+r.docsReady+'</td><td class="num">'+r.cocPassed+'</td></tr>').join('') +
-      '</tbody></table></div></div>';
+      '</tbody></table></div></div>' +
+    renderBatchReportingCard();
+  bindBatchReportingCard();
   document.getElementById('btn-export').addEventListener('click', ()=>{
     const header = ['Name','Branch','Batch','Status','Payment status','Amount','Payment date','Receipt ref','ID','Medical','Police','CoC status','CoC exam date','Certificate #','Dorm room','Bed','Intake date'];
     const lines = [header.join(',')];
@@ -1508,6 +1553,242 @@ function renderReports(main){
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(()=>URL.revokeObjectURL(url), 1000);
     toast('CSV downloaded');
+  });
+}
+
+/* ---------------------------------------------------------------------- */
+/* batch document reporting (certificates, ID cards, application forms,  */
+/* record books, COC transmittal letter) — generated straight from the    */
+/* cohort/trainee data already in the system, per batch.                 */
+/* ---------------------------------------------------------------------- */
+
+function renderBatchReportingCard(){
+  const cohorts = state.cohorts.slice().sort((a,b)=> (batchNumFromCode(b.code)||0) - (batchNumFromCode(a.code)||0));
+  if(!state.reportsCohortId && cohorts.length) state.reportsCohortId = cohorts[0].id;
+  const cohort = cohortById(state.reportsCohortId);
+  const count = cohort ? traineesOfCohort(cohort.id).length : 0;
+
+  const opts = cohorts.map(c=>'<option value="'+c.id+'"'+(c.id===state.reportsCohortId?' selected':'')+'>'+esc(c.code)+' — '+esc(branchName(c.branchId))+' ('+esc(c.status||'')+')</option>').join('');
+
+  let bodyHtml;
+  if(!cohort){
+    bodyHtml = '<div class="empty-state">No batches yet — create one under Batches first.</div>';
+  } else {
+    bodyHtml =
+      '<div class="field" style="max-width:420px;margin-bottom:14px;"><label>Cohort settings</label>' +
+        '<div class="row-sub" style="margin-bottom:8px;">'+count+' trainee'+(count===1?'':'s')+' in '+esc(cohort.code)+'. Assessment branch: <b>'+esc(cohort.assessmentBranch||'not set')+'</b>. Training window: <b>'+esc(cohort.trainingStartEC||'—')+' to '+esc(cohort.trainingEndEC||'—')+'</b> (E.C.)</div>' +
+        '<button class="btn btn-sm" id="btn-batch-settings">Edit batch report settings</button> ' +
+        '<button class="btn btn-sm" id="btn-batch-import">Import batch spreadsheet</button>' +
+      '</div>' +
+      '<div id="report-completeness" class="row-sub" style="margin-bottom:14px;">Checking data completeness…</div>' +
+      '<div class="field-row" style="gap:8px;flex-wrap:wrap;">' +
+        REPORT_DOC_TYPES.map(d=>'<button class="btn btn-sm" data-download-doc="'+d.endpoint+'">Download '+esc(d.label)+'</button>').join('') +
+      '</div>' +
+      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
+        '<div class="row-sub" style="margin-bottom:8px;">COC (Oromia Occupational Competence Assurance) transmittal letter — requesting assessment for this batch\'s graduates.</div>' +
+        '<button class="btn btn-sm btn-primary" id="btn-coc-report">Generate COC report letter</button>' +
+      '</div>';
+  }
+
+  return '<div class="card"><div class="card-head"><h2>Batch document reporting</h2>' +
+    '<select id="report-cohort-select" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;">'+opts+'</select>' +
+    '</div><div style="padding:2px 0;">'+bodyHtml+'</div></div>';
+}
+
+function bindBatchReportingCard(){
+  const sel = document.getElementById('report-cohort-select');
+  if(sel) sel.addEventListener('change', ()=>{ state.reportsCohortId = sel.value; state.reportsStatus = null; render(); });
+
+  const cohort = cohortById(state.reportsCohortId);
+  if(!cohort) return;
+
+  const settingsBtn = document.getElementById('btn-batch-settings');
+  if(settingsBtn) settingsBtn.addEventListener('click', ()=>openBatchSettingsModal(cohort));
+  const importBtn = document.getElementById('btn-batch-import');
+  if(importBtn) importBtn.addEventListener('click', ()=>openBatchImportModal(cohort));
+  const cocBtn = document.getElementById('btn-coc-report');
+  if(cocBtn) cocBtn.addEventListener('click', ()=>openCocReportModal(cohort));
+
+  document.querySelectorAll('[data-download-doc]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const endpoint = btn.dataset.downloadDoc;
+      btn.disabled = true; const origLabel = btn.textContent; btn.textContent = 'Generating…';
+      try {
+        await downloadFile('/api/reports/'+encodeURIComponent(cohort.id)+'/'+endpoint, {}, cohort.code.replace(/\s+/g,'')+'_'+endpoint);
+        toast('Downloaded');
+      } catch(e) {
+        toast(e.message || 'Failed to generate document');
+      } finally {
+        btn.disabled = false; btn.textContent = origLabel;
+      }
+    });
+  });
+
+  const box = document.getElementById('report-completeness');
+  if(box){
+    apiFetch('/api/reports/'+encodeURIComponent(cohort.id)+'/status').then(status=>{
+      if(state.reportsCohortId !== cohort.id) return; // selection changed while we were fetching
+      const rows = REPORT_DOC_TYPES.concat([{key:'cocReport', label:'COC report'}]).map(d=>{
+        const c = status.completeness[d.key];
+        if(!c) return '';
+        return c.complete
+          ? '<span class="pill pill-success" style="margin-right:6px;">'+esc(d.label)+' ready</span>'
+          : '<span class="pill pill-warning" style="margin-right:6px;" title="'+esc(c.missing.slice(0,8).map(m=>m.name+': missing '+m.fields.join(', ')).join('; '))+'">'+esc(d.label)+' — '+c.missing.length+' incomplete</span>';
+      }).join('');
+      box.innerHTML = rows || 'No trainees to check yet.';
+    }).catch(()=>{ if(box) box.innerHTML = 'Could not check data completeness.'; });
+  }
+}
+
+function openBatchSettingsModal(cohort){
+  openModal({
+    title: 'Batch report settings — '+cohort.code,
+    wide: true,
+    bodyHtml:
+      '<div class="row-sub" style="margin-bottom:10px;">These feed the certificates, ID cards, forms and COC letter for this batch. Dates are Ethiopian-calendar (E.C.) as YYYY-MM-DD.</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label>Assessment branch</label><input id="bs-branch" value="'+esc(cohort.assessmentBranch||'')+'" placeholder="AMBO BRANCH"></div>' +
+        '<div class="field"><label>Training city</label><input id="bs-city" value="'+esc(cohort.trainingCity||'')+'" placeholder="Holeta"></div>' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label>Training start (E.C.)</label><input id="bs-start" value="'+esc(cohort.trainingStartEC||'')+'" placeholder="2018-10-23"></div>' +
+        '<div class="field"><label>Training end (E.C.)</label><input id="bs-end" value="'+esc(cohort.trainingEndEC||'')+'" placeholder="2018-11-15"></div>' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label>Certificate date label</label><input id="bs-certdate" value="'+esc(cohort.certDateLabel||'')+'" placeholder="August, 2026"></div>' +
+        '<div class="field"><label>Record book "Year" label</label><input id="bs-yearlabel" value="'+esc(cohort.trainingYearLabel||'')+'" placeholder="2018/2026"></div>' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label>Reg. No. prefix</label><input id="bs-regprefix" value="'+esc(cohort.regNoPrefix||'')+'" placeholder="A10"></div>' +
+      '</div>',
+    submitLabel: 'Save settings',
+    onSubmit: async ()=>{
+      const patch = {
+        assessmentBranch: document.getElementById('bs-branch').value.trim(),
+        trainingCity: document.getElementById('bs-city').value.trim(),
+        trainingStartEC: document.getElementById('bs-start').value.trim(),
+        trainingEndEC: document.getElementById('bs-end').value.trim(),
+        certDateLabel: document.getElementById('bs-certdate').value.trim(),
+        trainingYearLabel: document.getElementById('bs-yearlabel').value.trim(),
+        regNoPrefix: document.getElementById('bs-regprefix').value.trim(),
+      };
+      try {
+        await state.db.collection('cohorts').doc(cohort.id).update(patch);
+        toast('Batch settings saved');
+        closeModal();
+        render();
+      } catch(e) { toast(e.message || 'Failed to save'); }
+    }
+  });
+}
+
+// Flexible header matching for the imported spreadsheet: accepts the
+// AFRBatch-style headers ("Sex", "Age", "Adress(city/zone)", etc.) as well
+// as plainer variants, matched case-insensitively and ignoring punctuation.
+const IMPORT_HEADER_ALIASES = {
+  sn: ['sn','s.n','no','no.'],
+  fullName: ['fullname','full name','name'],
+  sex: ['sex','gender'],
+  age: ['age'],
+  educationLevel: ['educationlevel','education','education level'],
+  region: ['region'],
+  cityZone: ['cityzone','city/zone','adresscityzone','city zone','zone'],
+  woredaKebele: ['woredakebele','woreda/kebele','woreda','kebele'],
+  labourId: ['labourid','labourid#','labour id','laborid'],
+  passportNo: ['passportno','passport no','passport'],
+  phone: ['phone','mobile','cellphone','telephone'],
+};
+function normalizeHeader(h){ return String(h||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function mapImportRow(row, headerIndex){
+  const out = {};
+  for(const [field, aliases] of Object.entries(IMPORT_HEADER_ALIASES)){
+    for(const alias of aliases){
+      const idx = headerIndex[normalizeHeader(alias)];
+      if(idx !== undefined && row[idx] !== undefined && row[idx] !== ''){ out[field] = row[idx]; break; }
+    }
+  }
+  return out;
+}
+
+function openBatchImportModal(cohort){
+  openModal({
+    title: 'Import batch spreadsheet — '+cohort.code,
+    wide: true,
+    bodyHtml:
+      '<div class="row-sub" style="margin-bottom:10px;">Upload the batch roster (.xlsx or .csv). Rows are matched to existing trainees in '+esc(cohort.code)+' by full name; unmatched rows are reported, not created.</div>' +
+      '<input type="file" id="bi-file" accept=".xlsx,.xls,.csv">' +
+      '<div id="bi-preview" class="row-sub" style="margin-top:10px;"></div>',
+    submitLabel: 'Import',
+    onSubmit: async ()=>{
+      const fileInput = document.getElementById('bi-file');
+      const file = fileInput.files && fileInput.files[0];
+      if(!file){ toast('Choose a file first'); return; }
+      try {
+        const rows = await parseSpreadsheetFile(file);
+        const result = await apiFetch('/api/reports/'+encodeURIComponent(cohort.id)+'/import-batch-data', {
+          method: 'POST', body: JSON.stringify({ trainees: rows }),
+        });
+        toast('Updated '+result.updatedCount+' trainee(s)'+(result.unmatched.length? ', '+result.unmatched.length+' unmatched' : ''));
+        closeModal();
+        state.reportsStatus = null;
+        render();
+      } catch(e) { toast(e.message || 'Import failed'); }
+    }
+  });
+}
+
+function parseSpreadsheetFile(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.onload = () => {
+      try {
+        if(typeof XLSX === 'undefined') { reject(new Error('Spreadsheet reader failed to load')); return; }
+        const wb = XLSX.read(reader.result, {type:'array', cellDates:false});
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const grid = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:''});
+        // Find the header row: the first row with at least 3 recognizable column names.
+        let headerRowIdx = -1, headerIndex = {};
+        for(let i=0;i<Math.min(grid.length,15);i++){
+          const idx = {};
+          grid[i].forEach((cell,ci)=>{ idx[normalizeHeader(cell)] = ci; });
+          const hits = Object.values(IMPORT_HEADER_ALIASES).flat().filter(a=>idx[normalizeHeader(a)]!==undefined).length;
+          if(hits >= 3){ headerRowIdx = i; headerIndex = idx; break; }
+        }
+        if(headerRowIdx === -1){ reject(new Error('Could not find a header row with recognizable columns (Full Name, Sex, Age, …)')); return; }
+        const rows = grid.slice(headerRowIdx+1)
+          .map(r=>mapImportRow(r, headerIndex))
+          .filter(r=>r.fullName);
+        resolve(rows);
+      } catch(e) { reject(e); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function openCocReportModal(cohort){
+  const male = traineesOfCohort(cohort.id).filter(t=>(t.sex||t.gender||'').toUpperCase().startsWith('M')).length;
+  const female = traineesOfCohort(cohort.id).filter(t=>(t.sex||t.gender||'').toUpperCase().startsWith('F')).length;
+  openModal({
+    title: 'COC report letter — '+cohort.code,
+    bodyHtml:
+      '<div class="row-sub" style="margin-bottom:10px;">'+male+' male, '+female+' female ('+(male+female)+' total) will be counted from current trainee data.</div>' +
+      '<div class="field"><label>Reference number</label><input id="coc-refno" value="'+esc(cohort.cocRefNo||'')+'" placeholder="AF19/2018"></div>' +
+      '<div class="field"><label>Letter date (E.C., optional — defaults to today)</label><input id="coc-date" value="'+esc(cohort.cocLetterDateEC||'')+'" placeholder="2018-12-05"></div>',
+    submitLabel: 'Generate letter',
+    onSubmit: async ()=>{
+      const refNo = document.getElementById('coc-refno').value.trim();
+      const letterDate = document.getElementById('coc-date').value.trim();
+      if(!refNo){ toast('Reference number is required'); return; }
+      try {
+        await downloadFile('/api/reports/'+encodeURIComponent(cohort.id)+'/coc-report.pdf', {
+          method: 'POST', body: JSON.stringify({ refNo, letterDate: letterDate || undefined }),
+        }, cohort.code.replace(/\s+/g,'')+'_COC_Report.pdf');
+        await state.db.collection('cohorts').doc(cohort.id).update({ cocRefNo: refNo, cocLetterDateEC: letterDate || cohort.cocLetterDateEC || '' });
+        toast('Downloaded');
+        closeModal();
+      } catch(e) { toast(e.message || 'Failed to generate letter'); }
+    }
   });
 }
 

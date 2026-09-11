@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const path = require('path');
 const { query, initSchema, seedIfEmpty } = require('./db');
 const { signToken, hashPassword, comparePassword, requireAuth, requireAdmin } = require('./auth');
+const reportsRouter = require('./documents/routes');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -233,6 +234,13 @@ app.delete('/api/db/:collection/:docId', requireAdmin, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+/* ------------------------------------------------------------------ */
+/* reporting: batch document generation (certificates, ID cards,      */
+/* application forms, record books, COC transmittal letters)         */
+/* ------------------------------------------------------------------ */
+
+app.use('/api/reports', reportsRouter);
 
 /* ------------------------------------------------------------------ */
 /* static frontend                                                     */
