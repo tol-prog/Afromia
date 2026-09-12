@@ -59,7 +59,7 @@ function makeTransform(cellCx, cellCy) {
   };
 }
 
-function drawCard(page, toPage, fonts, seal, t, assessmentBranch) {
+function drawCard(page, toPage, fonts, seal, t, assessmentBranch, assessmentCenter, occupation) {
   const { timesBold, times, timesBoldItalic, timesItalic } = fonts;
 
   const rect = (lx, ly, width, height, borderColor, borderWidth) => {
@@ -130,9 +130,9 @@ function drawCard(page, toPage, fonts, seal, t, assessmentBranch) {
   labeledUnderlineField(120, fy, 'Sex  ', t.sex || '', 9.6, timesBoldItalic);
   fy -= lineGap;
 
-  text(16, fy, `Occupation: ${OCCUPATION}`, 9.6, timesBoldItalic);
+  text(16, fy, `Occupation: ${occupation}`, 9.6, timesBoldItalic);
   fy -= lineGap;
-  text(16, fy, `Assessment Center: ${ASSESSMENT_CENTER}`, 9.6, timesBoldItalic);
+  text(16, fy, `Assessment Center: ${assessmentCenter}`, 9.6, timesBoldItalic);
   fy -= lineGap + 2;
 
   const disclaimer = [
@@ -158,6 +158,8 @@ function drawCard(page, toPage, fonts, seal, t, assessmentBranch) {
 
 async function generateIdCardsPdf(cohortData) {
   const assessmentBranch = cohortData.meta.assessmentBranch || 'AMBO BRANCH';
+  const assessmentCenter = cohortData.meta.assessmentCenter || ASSESSMENT_CENTER;
+  const occupation = cohortData.meta.occupation || OCCUPATION;
 
   const outDoc = await PDFDocument.create();
   const timesBold = await outDoc.embedFont(StandardFonts.TimesRomanBold);
@@ -189,7 +191,7 @@ async function generateIdCardsPdf(cohortData) {
     const cellCx = sx + CELL_W / 2;
     const cellCy = sy + CELL_H / 2;
     const toPage = makeTransform(cellCx, cellCy);
-    drawCard(page, toPage, fonts, seal, t, assessmentBranch);
+    drawCard(page, toPage, fonts, seal, t, assessmentBranch, assessmentCenter, occupation);
   });
 
   return Buffer.from(await outDoc.save());

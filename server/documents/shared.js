@@ -36,6 +36,11 @@ function fontPath(name) {
 }
 
 const BATCH_CODE_PREFIX_DEFAULT = 'A10';
+// Afromia's own institute facts -- used as the DEFAULT for every generator
+// (so nothing changes for Afromia's own DB-backed batches), but every
+// generator accepts a `cohortData.meta` override for each of these so the
+// same documents can be generated for a different training institute via
+// the "generate from a spreadsheet" flow (shapeUploadedRows() above).
 const ASSESSMENT_CENTER = 'Afromia DWTC';
 const OCCUPATION = 'Domestic Works';
 const APPLICATION_FEE = '349';
@@ -117,6 +122,72 @@ function shapeCohortData(cohort, trainees) {
       gradYearEC: cohort.trainingEndEC ? cohort.trainingEndEC.slice(0, 4) : '',
       trainingYearLabel: cohort.trainingYearLabel || '',
       certDateLabel: cohort.certDateLabel || '',
+      // Institute-level facts (name, occupation, fee, phone, ...) aren't on
+      // the `cohorts` collection at all -- every Afromia batch shares the
+      // same institute, so the generators fall back to the ASSESSMENT_CENTER
+      // / OCCUPATION / etc. constants below when these are unset. They exist
+      // here only so shapeUploadedRows() (a different institute's spreadsheet,
+      // no DB record at all) can override them per request.
+    },
+  };
+}
+
+/**
+ * Same shape as shapeCohortData(), but for the standalone "generate from a
+ * spreadsheet" flow: no cohort/trainees DB rows at all, just whatever rows
+ * were parsed client-side from an uploaded file plus a small settings form
+ * (see /api/reports/generate-from-spreadsheet/:docType). This is what makes
+ * that flow reusable for a different training institute -- every
+ * institute-specific fact (name, occupation, fee, phone, reg-no prefix) is
+ * an explicit override here rather than one of the constants below.
+ */
+function shapeUploadedRows(rows, meta = {}) {
+  const prefix = meta.regNoPrefix || BATCH_CODE_PREFIX_DEFAULT;
+  const shaped = (rows || [])
+    .map((r, i) => {
+      const sn = r.sn ? Number(r.sn) : i + 1;
+      const { first, father, grandfather } = splitName(r.fullName);
+      return {
+        sn,
+        fullName: r.fullName || '',
+        firstName: first,
+        fatherName: father,
+        grandfatherName: grandfather,
+        sex: String(r.sex || '').toUpperCase().slice(0, 1),
+        age: r.age != null && r.age !== '' ? Number(r.age) : null,
+        educationLevel: r.educationLevel != null ? r.educationLevel : '',
+        region: r.region || '',
+        cityZone: r.cityZone || '',
+        woredaKebele: r.woredaKebele || '',
+        labourId: r.labourId || '',
+        passportNo: r.passportNo || '',
+        phone: r.phone || '',
+        regNo: r.regNo || regNo(prefix, sn),
+      };
+    })
+    .filter((t) => t.fullName)
+    .sort((a, b) => a.sn - b.sn);
+
+  return {
+    trainees: shaped,
+    meta: {
+      cohortCode: meta.cohortCode || '',
+      assessmentBranch: meta.assessmentBranch || 'AMBO BRANCH',
+      trainingCity: meta.trainingCity || '',
+      trainingStartEC: meta.trainingStartEC || '',
+      trainingEndEC: meta.trainingEndEC || '',
+      gradYearEC: meta.trainingEndEC ? String(meta.trainingEndEC).slice(0, 4) : '',
+      trainingYearLabel: meta.trainingYearLabel || '',
+      certDateLabel: meta.certDateLabel || '',
+      regNoPrefix: prefix,
+      // Institute-level overrides -- left undefined (rather than defaulted
+      // here) when the caller didn't supply them, so the generators' own
+      // `meta.X || DEFAULT_X` fallback still applies.
+      assessmentCenter: meta.assessmentCenter || undefined,
+      occupation: meta.occupation || undefined,
+      applicationFee: meta.applicationFee || undefined,
+      institutePhone: meta.institutePhone || undefined,
+      practicalExperienceDays: meta.practicalExperienceDays || undefined,
     },
   };
 }
@@ -154,6 +225,7 @@ module.exports = {
   splitName,
   fmtEcDate,
   shapeCohortData,
+  shapeUploadedRows,
   completeness,
   ASSESSMENT_CENTER,
   OCCUPATION,

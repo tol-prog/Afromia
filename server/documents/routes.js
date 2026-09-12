@@ -13,7 +13,7 @@
 const express = require('express');
 const { query } = require('../db');
 const { requireAuth, requireAdmin } = require('../auth');
-const { shapeCohortData, completeness } = require('./shared');
+const { shapeCohortData, shapeUploadedRows, completeness } = require('./shared');
 const { generateCertificatesPdf } = require('./certificate');
 const { generateIdCardsPdf } = require('./idCards');
 const { generateApplicationFormsPdf } = require('./applicationForm');
@@ -35,6 +35,70 @@ async function loadCohortAndTrainees(cohortId) {
   return { cohort, trainees };
 }
 
+const XLSX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+// One place mapping each report type to its generator, file extension and
+// download filename -- shared by both the DB-backed routes below (a real
+// cohort's data) and the stateless "generate from a spreadsheet" routes
+// further down (an uploaded file's data, no DB record involved at all).
+const DOC_BUILDERS = {
+  certificates: { build: generateCertificatesPdf, ext: 'pdf', contentType: 'application/pdf', filename: (code) => `${code}_Certificates.pdf` },
+  'id-cards': { build: generateIdCardsPdf, ext: 'pdf', contentType: 'application/pdf', filename: (code) => `${code}_ID_Cards.pdf` },
+  'application-forms': { build: generateApplicationFormsPdf, ext: 'pdf', contentType: 'application/pdf', filename: (code) => `${code}_Application_Forms.pdf` },
+  'record-books': { build: generateRecordBooksPdf, ext: 'pdf', contentType: 'application/pdf', filename: (code) => `${code}_Record_Books.pdf` },
+  'coc-excel-report': { build: generateCocExcelReport, ext: 'xlsx', contentType: XLSX_CONTENT_TYPE, filename: (code) => `${code}_COC_Excel_Report.xlsx` },
+};
+
+/* ------------------------------------------------------------------ */
+/* stateless "generate from a spreadsheet" -- no cohort, no DB write,   */
+/* reusable for a different training institute's own roster/template.  */
+/* Registered before the /:cohortId/... routes below so a literal path  */
+/* segment here can never be swallowed by a :cohortId param.           */
+/* ------------------------------------------------------------------ */
+
+router.post('/generate-from-spreadsheet/coc-report.pdf', async (req, res) => {
+  try {
+    const { trainees: rows, meta, refNo, letterDate } = req.body || {};
+    if (!refNo) return res.status(400).json({ error: 'A reference number (refNo) is required for the COC report' });
+    if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: 'No trainee rows were found in the uploaded spreadsheet' });
+
+    const cohortData = shapeUploadedRows(rows, meta || {});
+    const { buffer } = await generateCocReportPdf(cohortData, { refNo, letterDate: letterDate || undefined });
+    const codeSlug = ((meta && meta.cohortCode) || 'Batch').replace(/\s+/g, '');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${codeSlug}_COC_Report.pdf"`);
+    res.send(buffer);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to generate document' });
+  }
+});
+
+router.post('/generate-from-spreadsheet/:docType', async (req, res) => {
+  try {
+    const { docType } = req.params;
+    const builder = DOC_BUILDERS[docType];
+    if (!builder) return res.status(404).json({ error: 'Unknown report type' });
+
+    const { trainees: rows, meta } = req.body || {};
+    if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: 'No trainee rows were found in the uploaded spreadsheet' });
+
+    const cohortData = shapeUploadedRows(rows, meta || {});
+    const buffer = await builder.build(cohortData);
+    const codeSlug = ((meta && meta.cohortCode) || 'Batch').replace(/\s+/g, '');
+    res.setHeader('Content-Type', builder.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${builder.filename(codeSlug)}"`);
+    res.send(buffer);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to generate document' });
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/* DB-backed: a real cohort's own trainees                             */
+/* ------------------------------------------------------------------ */
+
 router.get('/:cohortId/status', async (req, res) => {
   try {
     const loaded = await loadCohortAndTrainees(req.params.cohortId);
@@ -47,18 +111,11 @@ router.get('/:cohortId/status', async (req, res) => {
   }
 });
 
-const DOC_BUILDERS = {
-  certificates: { build: generateCertificatesPdf, filename: (code) => `${code}_Certificates.pdf` },
-  'id-cards': { build: generateIdCardsPdf, filename: (code) => `${code}_ID_Cards.pdf` },
-  'application-forms': { build: generateApplicationFormsPdf, filename: (code) => `${code}_Application_Forms.pdf` },
-  'record-books': { build: generateRecordBooksPdf, filename: (code) => `${code}_Record_Books.pdf` },
-};
-
-router.get('/:cohortId/:docType.pdf', async (req, res) => {
+router.get('/:cohortId/:docType.:ext', async (req, res) => {
   try {
-    const { cohortId, docType } = req.params;
+    const { cohortId, docType, ext } = req.params;
     const builder = DOC_BUILDERS[docType];
-    if (!builder) return res.status(404).json({ error: 'Unknown report type' });
+    if (!builder || builder.ext !== ext) return res.status(404).json({ error: 'Unknown report type' });
 
     const loaded = await loadCohortAndTrainees(cohortId);
     if (!loaded) return res.status(404).json({ error: 'Cohort not found' });
@@ -67,30 +124,8 @@ router.get('/:cohortId/:docType.pdf', async (req, res) => {
     const cohortData = shapeCohortData(loaded.cohort, loaded.trainees);
     const buffer = await builder.build(cohortData);
     const codeSlug = (loaded.cohort.code || cohortId).replace(/\s+/g, '');
-    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Type', builder.contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${builder.filename(codeSlug)}"`);
-    res.send(buffer);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Failed to generate document' });
-  }
-});
-
-// The "major" COC Excel report -- one row per trainee, in the same layout
-// as the original AFRBatch_010_New.xlsx template -- needs no extra input
-// beyond the cohort id, so (like the 4 PDF downloads) it's a plain GET.
-router.get('/:cohortId/coc-excel-report.xlsx', async (req, res) => {
-  try {
-    const { cohortId } = req.params;
-    const loaded = await loadCohortAndTrainees(cohortId);
-    if (!loaded) return res.status(404).json({ error: 'Cohort not found' });
-    if (!loaded.trainees.length) return res.status(400).json({ error: 'This cohort has no trainees yet' });
-
-    const cohortData = shapeCohortData(loaded.cohort, loaded.trainees);
-    const buffer = await generateCocExcelReport(cohortData);
-    const codeSlug = (loaded.cohort.code || cohortId).replace(/\s+/g, '');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${codeSlug}_COC_Excel_Report.xlsx"`);
     res.send(buffer);
   } catch (e) {
     console.error(e);

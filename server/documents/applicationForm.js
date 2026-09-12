@@ -22,6 +22,13 @@ async function generateApplicationFormsPdf(cohortData) {
     (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
   );
   const gradYear = cohortData.meta.gradYearEC || '';
+  // Institute-level facts: default to Afromia's own, but let a different
+  // institute's spreadsheet-upload override them (see shared.js's
+  // shapeUploadedRows).
+  const assessmentCenter = cohortData.meta.assessmentCenter || ASSESSMENT_CENTER;
+  const occupation = cohortData.meta.occupation || OCCUPATION;
+  const applicationFee = cohortData.meta.applicationFee || APPLICATION_FEE;
+  const practicalExperienceDays = cohortData.meta.practicalExperienceDays || PRACTICAL_EXPERIENCE_DAYS;
 
   const pdfDoc = await PDFDocument.create();
   const reg = await pdfDoc.embedFont(StandardFonts.TimesRoman);
@@ -135,25 +142,25 @@ async function generateApplicationFormsPdf(cohortData) {
     underlineField(L + 330, y, '', boldIt, 11, 150);
     y -= 22;
 
-    underlineField(L, y, ASSESSMENT_CENTER, boldIt, 11, 520);
+    underlineField(L, y, assessmentCenter, boldIt, 11, 520);
     y -= 13;
     page.drawText('(Name and address of school, company or training center)', { x: L + 5, y, size: 9, font: it, color: BLACK });
     y -= 20;
 
     page.drawText('I here by submit my application for assessment of my competencies as a', { x: L, y, size: 11, font: reg, color: BLACK });
     y -= 22;
-    underlineField(L, y, OCCUPATION, boldIt, 11, 520);
+    underlineField(L, y, occupation, boldIt, 11, 520);
     y -= 13;
     page.drawText('(Name of Occupation)', { x: L + 5, y, size: 9, font: it, color: BLACK });
     y -= 20;
 
     page.drawText('I assure that I have gained practical experience in the occupation of', { x: L, y, size: 11, font: reg, color: BLACK });
-    page.drawText(OCCUPATION, { x: L + 322, y, size: 11, font: boldIt, color: BLACK });
-    page.drawText('of', { x: L + 322 + boldIt.widthOfTextAtSize(OCCUPATION, 11) + 2, y, size: 11, font: reg, color: BLACK });
+    page.drawText(occupation, { x: L + 322, y, size: 11, font: boldIt, color: BLACK });
+    page.drawText('of', { x: L + 322 + boldIt.widthOfTextAtSize(occupation, 11) + 2, y, size: 11, font: reg, color: BLACK });
     y -= 22;
     underlineField(L, y, '', boldIt, 11, 170);
     page.drawText('for', { x: L + 185, y, size: 11, font: reg, color: BLACK });
-    underlineField(L + 205, y, PRACTICAL_EXPERIENCE_DAYS, boldIt, 11, 25);
+    underlineField(L + 205, y, practicalExperienceDays, boldIt, 11, 25);
     page.drawText('days.', { x: L + 240, y, size: 11, font: reg, color: BLACK });
     y -= 26;
 
@@ -165,7 +172,7 @@ async function generateApplicationFormsPdf(cohortData) {
     y -= 26;
 
     page.drawText('Along with this application I shall pay an application fee of Birr', { x: L, y, size: 11, font: reg, color: BLACK });
-    page.drawText(APPLICATION_FEE, { x: L + 320, y, size: 11, font: boldIt, color: BLACK });
+    page.drawText(applicationFee, { x: L + 320, y, size: 11, font: boldIt, color: BLACK });
     y -= 20;
     page.drawText('If any special arrangements (Related to health and physical disability) you', { x: L, y, size: 11, font: reg, color: BLACK });
     y -= 20;

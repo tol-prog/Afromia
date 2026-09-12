@@ -20,6 +20,9 @@ const ALL_BORDERS = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 const CENTER = { vertical: 'middle', horizontal: 'center', wrapText: true };
 
 async function generateCocExcelReport(cohortData) {
+  const assessmentCenter = cohortData.meta.assessmentCenter || ASSESSMENT_CENTER;
+  const institutePhone = cohortData.meta.institutePhone || INSTITUTE_PHONE;
+
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Afromia Training Manager';
   wb.created = new Date();
@@ -36,9 +39,9 @@ async function generateCocExcelReport(cohortData) {
   ws.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
   ws.getRow(1).height = 22;
 
-  ws.getCell('A2').value = `Name Of Assessment Center:- ${ASSESSMENT_CENTER}`;
+  ws.getCell('A2').value = `Name Of Assessment Center:- ${assessmentCenter}`;
   ws.getCell('A3').value = `Adress ( City/Zone):- ${cohortData.meta.trainingCity || ''}`;
-  ws.getCell('A4').value = `Phone Number:-  ${INSTITUTE_PHONE}`;
+  ws.getCell('A4').value = `Phone Number:-  ${institutePhone}`;
   ['A2', 'A3', 'A4'].forEach((ref) => { ws.getCell(ref).font = { bold: true, size: 11 }; });
 
   ws.mergeCells('J2:K2');
