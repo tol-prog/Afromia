@@ -1558,6 +1558,7 @@ function renderReports(main){
     renderSpreadsheetReportingCard();
   bindBatchReportingCard();
   bindSpreadsheetReportingCard();
+  document.getElementById('btn-open-spreadsheet-reports').addEventListener('click', openSpreadsheetReportingModal);
   document.getElementById('btn-export').addEventListener('click', ()=>{
     const header = ['Name','Branch','Batch','Status','Payment status','Amount','Payment date','Receipt ref','ID','Medical','Police','CoC status','CoC exam date','Certificate #','Dorm room','Bed','Intake date'];
     const lines = [header.join(',')];
@@ -1693,40 +1694,37 @@ function saveUploadReportSettings(s){
 // trainees collection.
 const uploadReportState = { rows: null, fileName: '' };
 
+// This card itself just opens a modal (see openSpreadsheetReportingModal
+// below). It used to be a full inline card on the Reports page, but the
+// background data-refresh polling (onSnapshot's setInterval, ~8s per
+// collection -- see db.collection(...).onSnapshot near the top of this
+// file) calls render() on every tick, which fully rebuilds the Reports
+// page's HTML. That wiped out the chosen file, the read roster and any
+// unsaved settings edits every few seconds. Modals live in their own DOM
+// root (modalRoot, set up by openModal) that render() never touches, so
+// moving this whole workflow into a modal makes it immune to that -- the
+// same reason the pre-existing "Import batch spreadsheet" modal never had
+// this problem.
 function renderSpreadsheetReportingCard(){
-  const s = loadUploadReportSettings();
-  const settingsField = (id, label, val, placeholder) =>
-    '<div class="field"><label>'+esc(label)+'</label><input id="'+id+'" value="'+esc(val||'')+'" placeholder="'+esc(placeholder||'')+'"></div>';
-
   return '<div class="card"><div class="card-head"><h2>Generate documents from a spreadsheet</h2></div>' +
     '<div style="padding:2px 0;">' +
-    '<div class="row-sub" style="margin-bottom:12px;">Upload a batch roster (.xlsx/.csv) and generate the same documents directly from it — no cohort setup needed. Useful for a one-off batch, or for another training institute entirely; nothing here is saved to the trainees database.</div>' +
-    '<div class="field-row"><div class="field"><label>Batch / file label</label><input id="us-code" value="'+esc(s.cohortCode)+'" placeholder="e.g. HopeSchool_B1 (used in filenames)"></div></div>' +
-    '<details style="margin-bottom:12px;"><summary style="cursor:pointer;font-weight:600;font-size:13px;margin-bottom:8px;">Institute &amp; batch details</summary>' +
-      '<div class="field-row">' + settingsField('us-center','Assessment/training center name', s.assessmentCenter) + settingsField('us-branch','OCA assessment branch', s.assessmentBranch) + '</div>' +
-      '<div class="field-row">' + settingsField('us-city','Training city / address', s.trainingCity) + settingsField('us-phone','Institute phone', s.institutePhone) + '</div>' +
-      '<div class="field-row">' + settingsField('us-occupation','Occupation', s.occupation) + settingsField('us-fee','Application fee (Birr)', s.applicationFee) + '</div>' +
-      '<div class="field-row">' + settingsField('us-days','Practical experience (days)', s.practicalExperienceDays) + settingsField('us-regprefix','Reg. No. prefix', s.regNoPrefix, 'A10') + '</div>' +
-      '<div class="field-row">' + settingsField('us-start','Training start (E.C., YYYY-MM-DD)', s.trainingStartEC) + settingsField('us-end','Training end (E.C., YYYY-MM-DD)', s.trainingEndEC) + '</div>' +
-      '<div class="field-row">' + settingsField('us-certdate','Certificate date label', s.certDateLabel, 'e.g. August, 2026') + settingsField('us-yearlabel','Training year label', s.trainingYearLabel, 'e.g. 2018 E.C.') + '</div>' +
-    '</details>' +
-    '<div class="field-row" style="align-items:flex-end;">' +
-      '<div class="field"><label>Roster file</label><input type="file" id="us-file" accept=".xlsx,.xls,.csv"></div>' +
-      '<div class="field"><button class="btn btn-sm" id="us-parse">Read file</button></div>' +
-    '</div>' +
-    '<div id="us-preview" class="row-sub" style="margin:6px 0 14px;">No file loaded yet.</div>' +
-    '<div class="field-row" style="gap:8px;flex-wrap:wrap;">' +
-      REPORT_DOC_TYPES.map(d=>'<button class="btn btn-sm" data-us-download="'+d.endpoint+'" disabled>Download '+esc(d.label)+'</button>').join('') +
-    '</div>' +
-    '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
-      '<div class="row-sub" style="margin-bottom:8px;">COC transmittal letter for this uploaded batch (Oromia OCA letterhead, stamp and signature stay Afromia\'s own — this generates the letter text and counts from the uploaded roster).</div>' +
-      '<div class="field-row" style="align-items:flex-end;">' +
-        '<div class="field"><label>Reference number</label><input id="us-coc-refno" placeholder="AF19/2018"></div>' +
-        '<div class="field"><label>Letter date (E.C., optional)</label><input id="us-coc-date" placeholder="2018-12-05"></div>' +
-        '<div class="field"><button class="btn btn-sm btn-primary" id="us-coc-download" disabled>Generate COC letter</button></div>' +
-      '</div>' +
-    '</div>' +
+    '<div class="row-sub" style="margin-bottom:12px;">Upload a batch roster (.xlsx/.csv) and generate certificates, ID cards, application forms, record books, the COC Excel report, or the COC letter directly from it — no cohort setup needed. Useful for a one-off batch, or for another training institute entirely; nothing here is saved to the trainees database.</div>' +
+    (uploadReportState.rows ? '<div class="row-sub" style="margin-bottom:12px;">'+uploadPreviewHtml(uploadReportState)+'</div>' : '') +
+    '<button class="btn btn-primary btn-sm" id="btn-open-spreadsheet-reports">'+(uploadReportState.rows?'Open':'Open spreadsheet tool')+'</button>' +
     '</div></div>';
+}
+
+function bindSpreadsheetReportingCard(){
+  // nothing to bind here directly -- renderReports() wires the
+  // #btn-open-spreadsheet-reports click itself, right after this card is
+  // inserted into the page.
+}
+
+function uploadPreviewHtml(uploadState){
+  const rows = uploadState.rows || [];
+  const male = rows.filter(r=>String(r.sex||'').toUpperCase().startsWith('M')).length;
+  const female = rows.filter(r=>String(r.sex||'').toUpperCase().startsWith('F')).length;
+  return '<span class="pill pill-success">'+rows.length+' trainee(s) loaded'+(uploadState.fileName?' from '+esc(uploadState.fileName):'')+'</span> — '+male+' male, '+female+' female';
 }
 
 function readUploadReportSettingsFromForm(){
@@ -1742,9 +1740,56 @@ function readUploadReportSettingsFromForm(){
   return s;
 }
 
-function bindSpreadsheetReportingCard(){
+function openSpreadsheetReportingModal(){
+  const s = loadUploadReportSettings();
+  const settingsField = (id, label, val, placeholder) =>
+    '<div class="field"><label>'+esc(label)+'</label><input id="'+id+'" value="'+esc(val||'')+'" placeholder="'+esc(placeholder||'')+'"></div>';
+  const hasRows = !!uploadReportState.rows;
+
+  const bodyHtml =
+    '<div class="row-sub" style="margin-bottom:12px;">Upload a batch roster (.xlsx/.csv) and generate the same documents directly from it — no cohort setup needed. Useful for a one-off batch, or for another training institute entirely; nothing here is saved to the trainees database.</div>' +
+    '<div class="field-row"><div class="field"><label>Batch / file label</label><input id="us-code" value="'+esc(s.cohortCode)+'" placeholder="e.g. HopeSchool_B1 (used in filenames)"></div></div>' +
+    '<details style="margin-bottom:12px;"><summary style="cursor:pointer;font-weight:600;font-size:13px;margin-bottom:8px;">Institute &amp; batch details</summary>' +
+      '<div class="field-row">' + settingsField('us-center','Assessment/training center name', s.assessmentCenter) + settingsField('us-branch','OCA assessment branch', s.assessmentBranch) + '</div>' +
+      '<div class="field-row">' + settingsField('us-city','Training city / address', s.trainingCity) + settingsField('us-phone','Institute phone', s.institutePhone) + '</div>' +
+      '<div class="field-row">' + settingsField('us-occupation','Occupation', s.occupation) + settingsField('us-fee','Application fee (Birr)', s.applicationFee) + '</div>' +
+      '<div class="field-row">' + settingsField('us-days','Practical experience (days)', s.practicalExperienceDays) + settingsField('us-regprefix','Reg. No. prefix', s.regNoPrefix, 'A10') + '</div>' +
+      '<div class="field-row">' + settingsField('us-start','Training start (E.C., YYYY-MM-DD)', s.trainingStartEC) + settingsField('us-end','Training end (E.C., YYYY-MM-DD)', s.trainingEndEC) + '</div>' +
+      '<div class="field-row">' + settingsField('us-certdate','Certificate date label', s.certDateLabel, 'e.g. August, 2026') + settingsField('us-yearlabel','Training year label', s.trainingYearLabel, 'e.g. 2018 E.C.') + '</div>' +
+    '</details>' +
+    '<div class="field-row" style="align-items:flex-end;">' +
+      '<div class="field"><label>Roster file</label><input type="file" id="us-file" accept=".xlsx,.xls,.csv"></div>' +
+      '<div class="field"><button class="btn btn-sm" id="us-parse">Read file</button></div>' +
+    '</div>' +
+    '<div id="us-preview" class="row-sub" style="margin:6px 0 14px;">'+(hasRows ? uploadPreviewHtml(uploadReportState) : 'No file loaded yet.')+'</div>' +
+    '<div class="field-row" style="gap:8px;flex-wrap:wrap;">' +
+      REPORT_DOC_TYPES.map(d=>'<button class="btn btn-sm" data-us-download="'+d.endpoint+'"'+(hasRows?'':' disabled')+'>Download '+esc(d.label)+'</button>').join('') +
+    '</div>' +
+    '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
+      '<div class="row-sub" style="margin-bottom:8px;">COC transmittal letter for this uploaded batch (Oromia OCA letterhead, stamp and signature stay Afromia\'s own — this generates the letter text and counts from the uploaded roster).</div>' +
+      '<div class="field-row" style="align-items:flex-end;">' +
+        '<div class="field"><label>Reference number</label><input id="us-coc-refno" placeholder="AF19/2018"></div>' +
+        '<div class="field"><label>Letter date (E.C., optional)</label><input id="us-coc-date" placeholder="2018-12-05"></div>' +
+        '<div class="field"><button class="btn btn-sm btn-primary" id="us-coc-download"'+(hasRows?'':' disabled')+'>Generate COC letter</button></div>' +
+      '</div>' +
+    '</div>';
+
+  openModal({ title: 'Generate documents from a spreadsheet', wide: true, bodyHtml });
+
+  // Persist settings on every keystroke (not just on a button click) --
+  // the modal itself is immune to the background polling re-renders, but
+  // this also means the next time it's opened, whatever was last typed is
+  // still there even if no download was actually triggered yet.
+  document.querySelectorAll('#modal-body input[id^="us-"]').forEach(el=>{
+    if(el.type === 'file') return;
+    el.addEventListener('input', readUploadReportSettingsFromForm);
+  });
+  bindSpreadsheetReportingModalActions();
+}
+
+function bindSpreadsheetReportingModalActions(){
   const parseBtn = document.getElementById('us-parse');
-  if(!parseBtn) return; // card not on screen (shouldn't happen on the Reports tab, but be safe)
+  if(!parseBtn) return;
 
   const downloadBtns = () => document.querySelectorAll('[data-us-download]');
   const cocBtn = document.getElementById('us-coc-download');
@@ -1760,9 +1805,7 @@ function bindSpreadsheetReportingCard(){
       if(!rows.length){ toast('No recognizable trainee rows found in that file'); return; }
       uploadReportState.rows = rows;
       uploadReportState.fileName = file.name;
-      const male = rows.filter(r=>String(r.sex||'').toUpperCase().startsWith('M')).length;
-      const female = rows.filter(r=>String(r.sex||'').toUpperCase().startsWith('F')).length;
-      preview.innerHTML = '<span class="pill pill-success">'+rows.length+' trainee(s) loaded from '+esc(file.name)+'</span> — '+male+' male, '+female+' female';
+      preview.innerHTML = uploadPreviewHtml(uploadReportState);
       downloadBtns().forEach(b=> b.disabled = false);
       if(cocBtn) cocBtn.disabled = false;
       toast('Roster loaded — '+rows.length+' trainee(s)');
