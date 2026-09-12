@@ -1558,6 +1558,7 @@ function renderReports(main){
     renderSpreadsheetReportingCard();
   bindBatchReportingCard();
   bindSpreadsheetReportingCard();
+  document.getElementById('btn-open-spreadsheet-reports').addEventListener('click', openSpreadsheetReportingModal);
   document.getElementById('btn-export').addEventListener('click', ()=>{
     const header = ['Name','Branch','Batch','Status','Payment status','Amount','Payment date','Receipt ref','ID','Medical','Police','CoC status','CoC exam date','Certificate #','Dorm room','Bed','Intake date'];
     const lines = [header.join(',')];
@@ -1693,40 +1694,37 @@ function saveUploadReportSettings(s){
 // trainees collection.
 const uploadReportState = { rows: null, fileName: '' };
 
+// This card itself just opens a modal (see openSpreadsheetReportingModal
+// below). It used to be a full inline card on the Reports page, but the
+// background data-refresh polling (onSnapshot's setInterval, ~8s per
+// collection -- see db.collection(...).onSnapshot near the top of this
+// file) calls render() on every tick, which fully rebuilds the Reports
+// page's HTML. That wiped out the chosen file, the read roster and any
+// unsaved settings edits every few seconds. Modals live in their own DOM
+// root (modalRoot, set up by openModal) that render() never touches, so
+// moving this whole workflow into a modal makes it immune to that -- the
+// same reason the pre-existing "Import batch spreadsheet" modal never had
+// this problem.
 function renderSpreadsheetReportingCard(){
-  const s = loadUploadReportSettings();
-  const settingsField = (id, label, val, placeholder) =>
-    '<div class="field"><label>'+esc(label)+'</label><input id="'+id+'" value="'+esc(val||'')+'" placeholder="'+esc(placeholder||'')+'"></div>';
-
   return '<div class="card"><div class="card-head"><h2>Generate documents from a spreadsheet</h2></div>' +
     '<div style="padding:2px 0;">' +
-    '<div class="row-sub" style="margin-bottom:12px;">Upload a batch roster (.xlsx/.csv) and generate the same documents directly from it — no cohort setup needed. Useful for a one-off batch, or for another training institute entirely; nothing here is saved to the trainees database.</div>' +
-    '<div class="field-row"><div class="field"><label>Batch / file label</label><input id="us-code" value="'+esc(s.cohortCode)+'" placeholder="e.g. HopeSchool_B1 (used in filenames)"></div></div>' +
-    '<details style="margin-bottom:12px;"><summary style="cursor:pointer;font-weight:600;font-size:13px;margin-bottom:8px;">Institute &amp; batch details</summary>' +
-      '<div class="field-row">' + settingsField('us-center','Assessment/training center name', s.assessmentCenter) + settingsField('us-branch','OCA assessment branch', s.assessmentBranch) + '</div>' +
-      '<div class="field-row">' + settingsField('us-city','Training city / address', s.trainingCity) + settingsField('us-phone','Institute phone', s.institutePhone) + '</div>' +
-      '<div class="field-row">' + settingsField('us-occupation','Occupation', s.occupation) + settingsField('us-fee','Application fee (Birr)', s.applicationFee) + '</div>' +
-      '<div class="field-row">' + settingsField('us-days','Practical experience (days)', s.practicalExperienceDays) + settingsField('us-regprefix','Reg. No. prefix', s.regNoPrefix, 'A10') + '</div>' +
-      '<div class="field-row">' + settingsField('us-start','Training start (E.C., YYYY-MM-DD)', s.trainingStartEC) + settingsField('us-end','Training end (E.C., YYYY-MM-DD)', s.trainingEndEC) + '</div>' +
-      '<div class="field-row">' + settingsField('us-certdate','Certificate date label', s.certDateLabel, 'e.g. August, 2026') + settingsField('us-yearlabel','Training year label', s.trainingYearLabel, 'e.g. 2018 E.C.') + '</div>' +
-    '</details>' +
-    '<div class="field-row" style="align-items:flex-end;">' +
-      '<div class="field"><label>Roster file</label><input type="file" id="us-file" accept=".xlsx,.xls,.csv"></div>' +
-      '<div class="field"><button class="btn btn-sm" id="us-parse">Read file</button></div>' +
-    '</div>' +
-    '<div id="us-preview" class="row-sub" style="margin:6px 0 14px;">No file loaded yet.</div>' +
-    '<div class="field-row" style="gap:8px;flex-wrap:wrap;">' +
-      REPORT_DOC_TYPES.map(d=>'<button class="btn btn-sm" data-us-download="'+d.endpoint+'" disabled>Download '+esc(d.label)+'</button>').join('') +
-    '</div>' +
-    '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
-      '<div class="row-sub" style="margin-bottom:8px;">COC transmittal letter for this uploaded batch (Oromia OCA letterhead, stamp and signature stay Afromia\'s own — this generates the letter text and counts from the uploaded roster).</div>' +
-      '<div class="field-row" style="align-items:flex-end;">' +
-        '<div class="field"><label>Reference number</label><input id="us-coc-refno" placeholder="AF19/2018"></div>' +
-        '<div class="field"><label>Letter date (E.C., optional)</label><input id="us-coc-date" placeholder="2018-12-05"></div>' +
-        '<div class="field"><button class="btn btn-sm btn-primary" id="us-coc-download" disabled>Generate COC letter</button></div>' +
-      '</div>' +
-    '</div>' +
+    '<div class="row-sub" style="margin-bottom:12px;">Upload a batch roster (.xlsx/.csv) and generate certificates, ID cards, application forms, record books, the COC Excel report, or the COC letter directly from it — no cohort setup needed. Useful for a one-off batch, or for another training institute entirely; nothing here is saved to the trainees database.</div>' +
+    (uploadReportState.rows ? '<div class="row-sub" style="margin-bottom:12px;">'+uploadPreviewHtml(uploadReportState)+'</div>' : '') +
+    '<button class="btn btn-primary btn-sm" id="btn-open-spreadsheet-reports">'+(uploadReportState.rows?'Open':'Open spreadsheet tool')+'</button>' +
     '</div></div>';
+}
+
+function bindSpreadsheetReportingCard(){
+  // nothing to bind here directly -- renderReports() wires the
+  // #btn-open-spreadsheet-reports click itself, right after this card is
+  // inserted into the page.
+}
+
+function uploadPreviewHtml(uploadState){
+  const rows = uploadState.rows || [];
+  const male = rows.filter(r=>String(r.sex||'').toUpperCase().startsWith('M')).length;
+  const female = rows.filter(r=>String(r.sex||'').toUpperCase().startsWith('F')).length;
+  return '<span class="pill pill-success">'+rows.length+' trainee(s) loaded'+(uploadState.fileName?' from '+esc(uploadState.fileName):'')+'</span> — '+male+' male, '+female+' female';
 }
 
 function readUploadReportSettingsFromForm(){
@@ -1742,9 +1740,56 @@ function readUploadReportSettingsFromForm(){
   return s;
 }
 
-function bindSpreadsheetReportingCard(){
+function openSpreadsheetReportingModal(){
+  const s = loadUploadReportSettings();
+  const settingsField = (id, label, val, placeholder) =>
+    '<div class="field"><label>'+esc(label)+'</label><input id="'+id+'" value="'+esc(val||'')+'" placeholder="'+esc(placeholder||'')+'"></div>';
+  const hasRows = !!uploadReportState.rows;
+
+  const bodyHtml =
+    '<div class="row-sub" style="margin-bottom:12px;">Upload a batch roster (.xlsx/.csv) and generate the same documents directly from it — no cohort setup needed. Useful for a one-off batch, or for another training institute entirely; nothing here is saved to the trainees database.</div>' +
+    '<div class="field-row"><div class="field"><label>Batch / file label</label><input id="us-code" value="'+esc(s.cohortCode)+'" placeholder="e.g. HopeSchool_B1 (used in filenames)"></div></div>' +
+    '<details style="margin-bottom:12px;"><summary style="cursor:pointer;font-weight:600;font-size:13px;margin-bottom:8px;">Institute &amp; batch details</summary>' +
+      '<div class="field-row">' + settingsField('us-center','Assessment/training center name', s.assessmentCenter) + settingsField('us-branch','OCA assessment branch', s.assessmentBranch) + '</div>' +
+      '<div class="field-row">' + settingsField('us-city','Training city / address', s.trainingCity) + settingsField('us-phone','Institute phone', s.institutePhone) + '</div>' +
+      '<div class="field-row">' + settingsField('us-occupation','Occupation', s.occupation) + settingsField('us-fee','Application fee (Birr)', s.applicationFee) + '</div>' +
+      '<div class="field-row">' + settingsField('us-days','Practical experience (days)', s.practicalExperienceDays) + settingsField('us-regprefix','Reg. No. prefix', s.regNoPrefix, 'A10') + '</div>' +
+      '<div class="field-row">' + settingsField('us-start','Training start (E.C., YYYY-MM-DD)', s.trainingStartEC) + settingsField('us-end','Training end (E.C., YYYY-MM-DD)', s.trainingEndEC) + '</div>' +
+      '<div class="field-row">' + settingsField('us-certdate','Certificate date label', s.certDateLabel, 'e.g. August, 2026') + settingsField('us-yearlabel','Training year label', s.trainingYearLabel, 'e.g. 2018 E.C.') + '</div>' +
+    '</details>' +
+    '<div class="field-row" style="align-items:flex-end;">' +
+      '<div class="field"><label>Roster file</label><input type="file" id="us-file" accept=".xlsx,.xls,.csv"></div>' +
+      '<div class="field"><button class="btn btn-sm" id="us-parse">Read file</button></div>' +
+    '</div>' +
+    '<div id="us-preview" class="row-sub" style="margin:6px 0 14px;">'+(hasRows ? uploadPreviewHtml(uploadReportState) : 'No file loaded yet.')+'</div>' +
+    '<div class="field-row" style="gap:8px;flex-wrap:wrap;">' +
+      REPORT_DOC_TYPES.map(d=>'<button class="btn btn-sm" data-us-download="'+d.endpoint+'"'+(hasRows?'':' disabled')+'>Download '+esc(d.label)+'</button>').join('') +
+    '</div>' +
+    '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">' +
+      '<div class="row-sub" style="margin-bottom:8px;">COC transmittal letter for this uploaded batch (Oromia OCA letterhead, stamp and signature stay Afromia\'s own — this generates the letter text and counts from the uploaded roster).</div>' +
+      '<div class="field-row" style="align-items:flex-end;">' +
+        '<div class="field"><label>Reference number</label><input id="us-coc-refno" placeholder="AF19/2018"></div>' +
+        '<div class="field"><label>Letter date (E.C., optional)</label><input id="us-coc-date" placeholder="2018-12-05"></div>' +
+        '<div class="field"><button class="btn btn-sm btn-primary" id="us-coc-download"'+(hasRows?'':' disabled')+'>Generate COC letter</button></div>' +
+      '</div>' +
+    '</div>';
+
+  openModal({ title: 'Generate documents from a spreadsheet', wide: true, bodyHtml });
+
+  // Persist settings on every keystroke (not just on a button click) --
+  // the modal itself is immune to the background polling re-renders, but
+  // this also means the next time it's opened, whatever was last typed is
+  // still there even if no download was actually triggered yet.
+  document.querySelectorAll('#modal-body input[id^="us-"]').forEach(el=>{
+    if(el.type === 'file') return;
+    el.addEventListener('input', readUploadReportSettingsFromForm);
+  });
+  bindSpreadsheetReportingModalActions();
+}
+
+function bindSpreadsheetReportingModalActions(){
   const parseBtn = document.getElementById('us-parse');
-  if(!parseBtn) return; // card not on screen (shouldn't happen on the Reports tab, but be safe)
+  if(!parseBtn) return;
 
   const downloadBtns = () => document.querySelectorAll('[data-us-download]');
   const cocBtn = document.getElementById('us-coc-download');
@@ -1760,9 +1805,7 @@ function bindSpreadsheetReportingCard(){
       if(!rows.length){ toast('No recognizable trainee rows found in that file'); return; }
       uploadReportState.rows = rows;
       uploadReportState.fileName = file.name;
-      const male = rows.filter(r=>String(r.sex||'').toUpperCase().startsWith('M')).length;
-      const female = rows.filter(r=>String(r.sex||'').toUpperCase().startsWith('F')).length;
-      preview.innerHTML = '<span class="pill pill-success">'+rows.length+' trainee(s) loaded from '+esc(file.name)+'</span> — '+male+' male, '+female+' female';
+      preview.innerHTML = uploadPreviewHtml(uploadReportState);
       downloadBtns().forEach(b=> b.disabled = false);
       if(cocBtn) cocBtn.disabled = false;
       toast('Roster loaded — '+rows.length+' trainee(s)');
@@ -1856,32 +1899,102 @@ function openBatchSettingsModal(cohort){
   });
 }
 
-// Flexible header matching for the imported spreadsheet: accepts the
-// AFRBatch-style headers ("Sex", "Age", "Adress(city/zone)", etc.) as well
-// as plainer variants, matched case-insensitively and ignoring punctuation.
-const IMPORT_HEADER_ALIASES = {
-  sn: ['sn','s.n','no','no.'],
-  fullName: ['fullname','full name','name'],
-  sex: ['sex','gender'],
-  age: ['age'],
-  educationLevel: ['educationlevel','education','education level'],
-  region: ['region'],
-  cityZone: ['cityzone','city/zone','adresscityzone','city zone','zone'],
-  woredaKebele: ['woredakebele','woreda/kebele','woreda','kebele'],
-  labourId: ['labourid','labourid#','labour id','laborid'],
-  passportNo: ['passportno','passport no','passport'],
-  phone: ['phone','mobile','cellphone','telephone'],
-};
+// Flexible header matching for the imported spreadsheet: real rosters vary a
+// lot between institutes (and even Afromia's own official AFRBatch template)
+// -- "Sex" vs "Gender", "Passport No." vs "Passport Number", "Woreda/Kebele"
+// vs "District/Kebele", and address/labour-ID/phone columns that are only
+// filled in on a *second* header row under a merged "Adress" cell (Region/
+// City-Zone/Woreda-Kebele as sub-columns). A single-row, exact-match scan
+// (the original approach here) silently dropped all of those into blank
+// fields. The fix below merges each column's header text across the whole
+// header block (the detected header row plus any immediately-following
+// rows that don't yet look like data), then matches the address/ID/contact
+// fields by substring against that merged text -- while keeping the short,
+// generic aliases (S/N, Age, ...) as exact matches against the primary row
+// only, so they can't accidentally match unrelated merged text.
+const IMPORT_FIELD_DEFS = [
+  { field: 'sn', aliases: ['sn','s.n','no','no.'], mode: 'exact' },
+  { field: 'fullName', aliases: ['fullname','full name','name'], mode: 'exact' },
+  { field: 'sex', aliases: ['sex','gender'], mode: 'exact' },
+  { field: 'age', aliases: ['age'], mode: 'exact' },
+  { field: 'educationLevel', aliases: ['educationlevel','education','education level','grade'], mode: 'exact' },
+  { field: 'region', aliases: ['region'], mode: 'contains' },
+  { field: 'cityZone', aliases: ['cityzone','city/zone','city zone','zone'], mode: 'contains' },
+  { field: 'woredaKebele', aliases: ['woredakebele','woreda/kebele','woreda','kebele'], mode: 'contains' },
+  { field: 'labourId', aliases: ['labourid','labour id','laborid','labor id'], mode: 'contains' },
+  { field: 'passportNo', aliases: ['passportno','passport no','passport'], mode: 'contains' },
+  { field: 'phone', aliases: ['phone','mobile','cellphone','telephone'], mode: 'contains' },
+];
+// If no direct Age column is found, some institutes' own templates instead
+// split date of birth into Date/Month/Year sub-columns under a merged
+// "Year of Birth" (or "Date of Birth") header -- look for that pattern and
+// compute age from the birth year as a fallback.
+const BIRTH_ANCHOR_ALIASES = ['yearofbirth','dateofbirth','birthyear','dob'];
+
 function normalizeHeader(h){ return String(h||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
-function mapImportRow(row, headerIndex){
-  const out = {};
-  for(const [field, aliases] of Object.entries(IMPORT_HEADER_ALIASES)){
-    for(const alias of aliases){
-      const idx = headerIndex[normalizeHeader(alias)];
-      if(idx !== undefined && row[idx] !== undefined && row[idx] !== ''){ out[field] = row[idx]; break; }
+
+/** Collects the header row plus any immediately-following rows that still
+ * look like header continuations (no S/N value in column 0 yet -- real
+ * trainee rows always start with a running number), up to 3 extra rows. */
+function buildHeaderBlock(grid, headerRowIdx, maxExtraRows){
+  maxExtraRows = maxExtraRows == null ? 3 : maxExtraRows;
+  const rows = [grid[headerRowIdx]];
+  for(let r = headerRowIdx+1; r < Math.min(grid.length, headerRowIdx+1+maxExtraRows); r++){
+    const row = grid[r] || [];
+    const firstCell = String(row[0]==null?'':row[0]).trim();
+    if(firstCell !== '') break;
+    rows.push(row);
+  }
+  return rows;
+}
+
+/** Per column, concatenates every non-empty cell across the header block --
+ * so a merged "Adress" cell above a "Region/city administration" sub-header
+ * becomes one composite string to match address aliases against. */
+function compositeColumnHeaders(headerBlockRows, colCount){
+  const merged = [];
+  for(let ci=0; ci<colCount; ci++){
+    const parts = headerBlockRows.map(row=> String((row&&row[ci]!=null)?row[ci]:'').trim()).filter(Boolean);
+    merged.push(parts.join(' '));
+  }
+  return merged;
+}
+
+function matchColumnsToFields(headerRow, mergedHeaders){
+  const claimed = new Set();
+  const colFor = {};
+  const exactIndex = {};
+  headerRow.forEach((cell,ci)=>{ exactIndex[normalizeHeader(cell)] = ci; });
+
+  IMPORT_FIELD_DEFS.forEach(({field, aliases, mode})=>{
+    if(mode === 'exact'){
+      for(const alias of aliases){
+        const ci = exactIndex[normalizeHeader(alias)];
+        if(ci !== undefined && !claimed.has(ci)){ colFor[field] = ci; claimed.add(ci); return; }
+      }
+    } else {
+      for(let ci=0; ci<mergedHeaders.length; ci++){
+        if(claimed.has(ci)) continue;
+        const norm = normalizeHeader(mergedHeaders[ci]);
+        if(!norm) continue;
+        if(aliases.some(a=> norm.includes(normalizeHeader(a)))){ colFor[field] = ci; claimed.add(ci); break; }
+      }
+    }
+  });
+
+  if(colFor.age === undefined){
+    for(let ci=0; ci<mergedHeaders.length; ci++){
+      const norm = normalizeHeader(mergedHeaders[ci]);
+      if(BIRTH_ANCHOR_ALIASES.some(a=>norm.includes(a))){
+        for(let yi=ci; yi<Math.min(mergedHeaders.length, ci+4); yi++){
+          if(claimed.has(yi)) continue;
+          if(normalizeHeader(mergedHeaders[yi]) === 'year'){ colFor.birthYear = yi; claimed.add(yi); break; }
+        }
+        break;
+      }
     }
   }
-  return out;
+  return colFor;
 }
 
 function openBatchImportModal(cohort){
@@ -1922,17 +2035,41 @@ function parseSpreadsheetFile(file){
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const grid = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:''});
         // Find the header row: the first row with at least 3 recognizable column names.
-        let headerRowIdx = -1, headerIndex = {};
+        const allAliases = IMPORT_FIELD_DEFS.reduce((acc,d)=>acc.concat(d.aliases), []);
+        let headerRowIdx = -1;
         for(let i=0;i<Math.min(grid.length,15);i++){
           const idx = {};
           grid[i].forEach((cell,ci)=>{ idx[normalizeHeader(cell)] = ci; });
-          const hits = Object.values(IMPORT_HEADER_ALIASES).flat().filter(a=>idx[normalizeHeader(a)]!==undefined).length;
-          if(hits >= 3){ headerRowIdx = i; headerIndex = idx; break; }
+          const hits = allAliases.filter(a=>idx[normalizeHeader(a)]!==undefined).length;
+          if(hits >= 3){ headerRowIdx = i; break; }
         }
         if(headerRowIdx === -1){ reject(new Error('Could not find a header row with recognizable columns (Full Name, Sex, Age, …)')); return; }
-        const rows = grid.slice(headerRowIdx+1)
-          .map(r=>mapImportRow(r, headerIndex))
-          .filter(r=>r.fullName);
+
+        const headerBlockRows = buildHeaderBlock(grid, headerRowIdx);
+        const colCount = grid.reduce((m,r)=>Math.max(m,(r||[]).length), 0);
+        const mergedHeaders = compositeColumnHeaders(headerBlockRows, colCount);
+        const colFor = matchColumnsToFields(grid[headerRowIdx], mergedHeaders);
+        const dataStartIdx = headerRowIdx + headerBlockRows.length;
+        const CURRENT_YEAR = new Date().getFullYear();
+        // A real trainee row always carries a running S/N when that column
+        // exists; a trailing signature/footer block (Afromia's own official
+        // template has one -- "Rejistiraara", "Mallattoo", "Guyyaa :-...")
+        // can land free text in the Full Name column position but never has
+        // an S/N, so require one when the column was actually found.
+        const requireSn = colFor.sn !== undefined;
+        const rows = grid.slice(dataStartIdx).map(r=>{
+          const out = {};
+          Object.keys(colFor).forEach(field=>{
+            if(field === 'birthYear') return;
+            const v = (r||[])[colFor[field]];
+            if(v !== undefined && v !== null && v !== ''){ out[field] = v; }
+          });
+          if(out.age === undefined && colFor.birthYear !== undefined){
+            const yearNum = Number((r||[])[colFor.birthYear]);
+            if(yearNum && yearNum > 1900 && yearNum <= CURRENT_YEAR + 1){ out.age = CURRENT_YEAR - yearNum; }
+          }
+          return out;
+        }).filter(r=> r.fullName && (!requireSn || r.sn !== undefined));
         resolve(rows);
       } catch(e) { reject(e); }
     };
