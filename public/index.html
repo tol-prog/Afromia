@@ -265,6 +265,137 @@ function refreshCollection(name) {
   dbListenerRegistry.filter(l => l.collection === name).forEach(l => l.refresh());
 }
 
+/* =========================================================================
+   Offline support — a local cache of each collection plus a queue of writes
+   that could not reach the server. The office needs to be able to register
+   a trainee (or edit one, log a payment, etc.) even when the internet is
+   down at that moment; the change is saved locally straight away and sent
+   on to the server automatically the next time the connection is back.
+
+   - IndexedDB holds two things: the last known snapshot of each collection
+     (so the app still has data to show after a reload with no connection),
+     and the outbox of writes that haven't reached the server yet.
+   - Every onSnapshot listener overlays any still-pending outbox entries on
+     top of whatever it last fetched, so a record created or edited offline
+     shows up immediately and keeps showing up (even across a page reload)
+     until it has actually synced.
+   ========================================================================= */
+
+const OFFLINE_DB_NAME = 'afromia-offline';
+const OFFLINE_DB_VERSION = 1;
+let offlineDbPromise = null;
+function openOfflineDb() {
+  if (offlineDbPromise) return offlineDbPromise;
+  offlineDbPromise = new Promise((resolve) => {
+    if (!('indexedDB' in window)) { resolve(null); return; }
+    let req;
+    try { req = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION); } catch (e) { resolve(null); return; }
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      if (!d.objectStoreNames.contains('snapshots')) d.createObjectStore('snapshots', { keyPath: 'collection' });
+      if (!d.objectStoreNames.contains('outbox')) d.createObjectStore('outbox', { keyPath: 'localId' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null); // offline support just degrades gracefully without IndexedDB
+  });
+  return offlineDbPromise;
+}
+async function idbPut(storeName, value) {
+  const d = await openOfflineDb(); if (!d) return;
+  return new Promise(resolve => {
+    const tx = d.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).put(value);
+    tx.oncomplete = () => resolve(); tx.onerror = () => resolve();
+  });
+}
+async function idbDelete(storeName, key) {
+  const d = await openOfflineDb(); if (!d) return;
+  return new Promise(resolve => {
+    const tx = d.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(key);
+    tx.oncomplete = () => resolve(); tx.onerror = () => resolve();
+  });
+}
+async function idbGet(storeName, key) {
+  const d = await openOfflineDb(); if (!d) return undefined;
+  return new Promise(resolve => {
+    const tx = d.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).get(key);
+    req.onsuccess = () => resolve(req.result); req.onerror = () => resolve(undefined);
+  });
+}
+async function idbGetAll(storeName) {
+  const d = await openOfflineDb(); if (!d) return [];
+  return new Promise(resolve => {
+    const tx = d.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).getAll();
+    req.onsuccess = () => resolve(req.result || []); req.onerror = () => resolve([]);
+  });
+}
+
+function newLocalId() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (uid() + '-' + uid() + '-' + uid()); }
+
+// fetch() rejects with a TypeError when the request can't be made at all
+// (no connection, DNS failure, etc). Anything else — a 4xx/5xx, an auth
+// failure, a validation error — is a real response from the server and
+// should be handled as the error it is, not silently queued.
+function isNetworkError(err) { return (err instanceof TypeError) || (typeof navigator !== 'undefined' && navigator.onLine === false); }
+
+let outbox = []; // mirrored into IndexedDB so pending writes survive a reload
+const offlineListeners = []; // one per active onSnapshot, re-applies pending writes with no network call
+function notifyOfflineChange() {
+  offlineListeners.forEach(fn => { try { fn(); } catch (e) {} });
+  try { render(); } catch (e) {} // refreshes the offline/pending-count banner
+}
+async function loadOutboxFromDisk() {
+  outbox = await idbGetAll('outbox');
+  outbox.sort((a, b) => a.createdAt - b.createdAt);
+  notifyOfflineChange();
+  scheduleFlush(0);
+}
+function pendingWritesFor(collection) { return outbox.filter(e => e.collection === collection); }
+async function queueWrite(collection, docId, method, body) {
+  const entry = { localId: newLocalId(), collection, docId, method, body, createdAt: Date.now() };
+  outbox.push(entry);
+  await idbPut('outbox', entry);
+  notifyOfflineChange();
+  scheduleFlush();
+  return entry;
+}
+async function saveSnapshotToDisk(collection, rows) { await idbPut('snapshots', { collection, rows, updatedAt: Date.now() }); }
+async function loadSnapshotFromDisk(collection) { const row = await idbGet('snapshots', collection); return row ? row.rows : null; }
+
+let flushTimer = null;
+let flushing = false;
+function scheduleFlush(delay) { clearTimeout(flushTimer); flushTimer = setTimeout(flushOutbox, delay == null ? 400 : delay); }
+async function flushOutbox() {
+  if (flushing || !navigator.onLine || !outbox.length) return;
+  flushing = true;
+  try {
+    while (outbox.length) {
+      const entry = outbox[0];
+      try {
+        await apiFetch('/api/db/' + entry.collection + '/' + encodeURIComponent(entry.docId), { method: entry.method, body: JSON.stringify(entry.body) });
+        outbox.shift();
+        await idbDelete('outbox', entry.localId);
+        refreshCollection(entry.collection);
+        notifyOfflineChange();
+      } catch (err) {
+        if (isNetworkError(err)) break; // still offline — stop here, the next trigger will retry from the top
+        // A real rejection from the server (validation, auth, etc): drop it
+        // rather than blocking everything queued behind it, and say so.
+        outbox.shift();
+        await idbDelete('outbox', entry.localId);
+        notifyOfflineChange();
+        toast('A change could not be saved: ' + (err.message || 'unknown error'));
+      }
+    }
+  } finally { flushing = false; }
+}
+window.addEventListener('online', () => { notifyOfflineChange(); scheduleFlush(0); });
+window.addEventListener('offline', () => { notifyOfflineChange(); });
+setInterval(() => { if (navigator.onLine) scheduleFlush(0); }, 15000);
+
 class ApiDocRef {
   constructor(collection, id) { this.collection = collection; this.id = id; }
   async get() {
@@ -272,14 +403,28 @@ class ApiDocRef {
     return { exists: !!r.exists, data: () => r.data || {}, id: this.id };
   }
   async set(data) {
-    const r = await apiFetch('/api/db/' + this.collection + '/' + encodeURIComponent(this.id), { method: 'PUT', body: JSON.stringify(data) });
-    refreshCollection(this.collection);
-    return r;
+    try {
+      const r = await apiFetch('/api/db/' + this.collection + '/' + encodeURIComponent(this.id), { method: 'PUT', body: JSON.stringify(data) });
+      refreshCollection(this.collection);
+      return r;
+    } catch (err) {
+      if (!isNetworkError(err)) throw err;
+      await queueWrite(this.collection, this.id, 'PUT', data);
+      refreshCollection(this.collection);
+      return { id: this.id, data, queued: true };
+    }
   }
   async update(data) {
-    const r = await apiFetch('/api/db/' + this.collection + '/' + encodeURIComponent(this.id), { method: 'PATCH', body: JSON.stringify(data) });
-    refreshCollection(this.collection);
-    return r;
+    try {
+      const r = await apiFetch('/api/db/' + this.collection + '/' + encodeURIComponent(this.id), { method: 'PATCH', body: JSON.stringify(data) });
+      refreshCollection(this.collection);
+      return r;
+    } catch (err) {
+      if (!isNetworkError(err)) throw err;
+      await queueWrite(this.collection, this.id, 'PATCH', data);
+      refreshCollection(this.collection);
+      return { id: this.id, data, queued: true };
+    }
   }
 }
 
@@ -287,9 +432,21 @@ class ApiCollectionRef {
   constructor(name) { this.name = name; this._where = null; }
   doc(id) { return new ApiDocRef(this.name, id); }
   async add(data) {
-    const r = await apiFetch('/api/db/' + this.name, { method: 'POST', body: JSON.stringify(data) });
-    refreshCollection(this.name);
-    return r;
+    // The id is generated here on the client, instead of letting the server
+    // assign one, so a brand-new record created offline can be queued and
+    // (via PUT's upsert) synced later with zero risk of ever ending up with
+    // two different ids for what was meant to be a single new record.
+    const id = newLocalId();
+    try {
+      const r = await apiFetch('/api/db/' + this.name + '/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(data) });
+      refreshCollection(this.name);
+      return r;
+    } catch (err) {
+      if (!isNetworkError(err)) throw err;
+      await queueWrite(this.name, id, 'PUT', data);
+      refreshCollection(this.name);
+      return { id, data, queued: true };
+    }
   }
   where(field, op, value) { this._where = { field, value }; return this; }
   async get() {
@@ -300,19 +457,48 @@ class ApiCollectionRef {
   }
   onSnapshot(cb) {
     let stopped = false;
+    let lastGoodRows = null; // raw {id,data} rows from the server (or disk), before pending writes are overlaid
+    const applyPending = (rows) => {
+      const pending = pendingWritesFor(this.name);
+      if (!pending.length) return rows;
+      const byId = new Map(rows.map(r => [r.id, r]));
+      pending.forEach(entry => {
+        const current = byId.get(entry.docId);
+        const merged = (entry.method === 'PATCH' && current) ? Object.assign({}, current.data, entry.body) : entry.body;
+        byId.set(entry.docId, { id: entry.docId, data: Object.assign({}, merged, { _offlinePending: true }) });
+      });
+      return Array.from(byId.values());
+    };
+    const emit = (rows) => cb({ docs: applyPending(rows).map(r => ({ id: r.id, data: () => r.data })) });
     const fire = async () => {
       if (stopped) return;
       try {
         const rows = await apiFetch('/api/db/' + this.name);
         if (stopped) return;
-        cb({ docs: rows.map(r => ({ id: r.id, data: () => r.data })) });
-      } catch (e) { /* leave last-known state on transient errors */ }
+        lastGoodRows = rows;
+        emit(rows);
+        saveSnapshotToDisk(this.name, rows);
+      } catch (e) {
+        if (lastGoodRows) { emit(lastGoodRows); return; } // already have data from this session — keep showing it
+        const cached = await loadSnapshotFromDisk(this.name);
+        // cold start with no connection: fall back to disk, or — if this
+        // device has never synced this collection at all — an empty base,
+        // so a record created while offline still shows up right away.
+        lastGoodRows = cached || [];
+        emit(lastGoodRows);
+      }
     };
+    const reapplyPending = () => { if (lastGoodRows) emit(lastGoodRows); }; // no network call — just re-overlays the outbox
     fire();
     const interval = setInterval(fire, 8000);
     const entry = { collection: this.name, refresh: fire };
     dbListenerRegistry.push(entry);
-    return () => { stopped = true; clearInterval(interval); dbListenerRegistry.splice(dbListenerRegistry.indexOf(entry), 1); };
+    offlineListeners.push(reapplyPending);
+    return () => {
+      stopped = true; clearInterval(interval);
+      dbListenerRegistry.splice(dbListenerRegistry.indexOf(entry), 1);
+      offlineListeners.splice(offlineListeners.indexOf(reapplyPending), 1);
+    };
   }
 }
 
@@ -393,6 +579,32 @@ async function boot(){
 /* ---------------------------------------------------------------------- */
 
 function isAdmin(){ return state.currentStaff && state.currentStaff.role === 'admin'; }
+const PERMISSION_KEYS = [
+  ['trainees','Trainees','Enroll &amp; edit trainees, log payments, assign dorm beds'],
+  ['cohorts','Batches','Create/edit batches, take attendance, enter assessments'],
+  ['dormitory','Dormitory','Add &amp; edit dormitory rooms'],
+  ['finance','Finance','Revenue, expenses, kitchen items, overhead &amp; rates'],
+  ['curriculum','Curriculum','Add &amp; edit training modules'],
+  ['branches','Branches','Add &amp; edit training-center branches'],
+  ['reports','Reports','Generate certificates, ID cards &amp; CoC documents'],
+  ['staff','Staff','Add/edit staff accounts and their access'],
+];
+// A non-admin account only has a configured `permissions` object once an
+// administrator has opened its staff-edit form and saved one (even an empty
+// one, if every box was left unchecked). Until then it's a "legacy" account
+// that predates this permissions system, and keeps its original, narrower
+// built-in capability instead.
+function isLegacyStaff(){
+  const cs = state.currentStaff;
+  return !!cs && cs.role!=='admin' && !(cs.permissions && typeof cs.permissions==='object');
+}
+function hasPerm(key){
+  const cs = state.currentStaff;
+  if(!cs) return false;
+  if(cs.role==='admin') return true;
+  if(cs.permissions && typeof cs.permissions==='object') return !!cs.permissions[key];
+  return false;
+}
 function scopeBranchIds(){
   if(isAdmin()) return state.branchFilter==='all' ? state.branches.map(b=>b.id) : [state.branchFilter];
   return state.currentStaff ? [state.currentStaff.branchId] : [];
@@ -445,24 +657,59 @@ function pillForStatus(v){
 
 function render(){
   if(!state.currentStaff){ renderLogin(); return; }
+  // Some accounts (e.g. ones created or reset by an administrator on someone
+  // else's behalf) are flagged to require a fresh, self-chosen password
+  // before they can use anything else in the app.
+  if(state.currentStaff.mustChangePassword){ renderForcedPasswordChange(); return; }
   if(!state.ready){ root.innerHTML = '<div class="loading-screen">Loading Afromia Training Manager…</div>'; return; }
   renderShell();
 }
 
-function navItemsFor(role){
-  if(role==='admin'){
+const FINANCE_NAV_ITEMS = [['finance-overview','Overview'],['finance-revenue','Revenue log'],['finance-expense','Expense log'],['finance-kitchen','Kitchen items'],['finance-overhead','Monthly overhead'],['finance-assumptions','Rates & assumptions']];
+function navItemsFor(staff){
+  if(staff.role==='admin'){
     return [
       {sec:'Operate', items:[['dashboard','Dashboard'],['trainees','Trainees'],['cohorts','Batches'],['dormitory','Dormitory']]},
-      {sec:'Finance', items:[['finance-overview','Overview'],['finance-revenue','Revenue log'],['finance-expense','Expense log'],['finance-kitchen','Kitchen items'],['finance-overhead','Monthly overhead'],['finance-assumptions','Rates & assumptions']]},
+      {sec:'Finance', items:FINANCE_NAV_ITEMS},
       {sec:'Manage', items:[['curriculum','Curriculum'],['staff','Staff'],['branches','Branches'],['reports','Reports']]},
     ];
   }
-  return [{sec:'Operate', items:[['dashboard','Dashboard'],['cohorts','Batches'],['trainees','Trainees']]}];
+  const perms = (staff.permissions && typeof staff.permissions==='object') ? staff.permissions : null;
+  if(!perms){
+    // Legacy trainer account, never configured under the new permissions
+    // system — keep its original nav exactly as before.
+    return [{sec:'Operate', items:[['dashboard','Dashboard'],['cohorts','Batches'],['trainees','Trainees']]}];
+  }
+  const opItems = [['dashboard','Dashboard']];
+  if(perms.trainees) opItems.push(['trainees','Trainees']);
+  if(perms.cohorts) opItems.push(['cohorts','Batches']);
+  if(perms.dormitory) opItems.push(['dormitory','Dormitory']);
+  const sections = [{sec:'Operate', items:opItems}];
+  if(perms.finance) sections.push({sec:'Finance', items:FINANCE_NAV_ITEMS});
+  const manageItems = [];
+  if(perms.curriculum) manageItems.push(['curriculum','Curriculum']);
+  if(perms.staff) manageItems.push(['staff','Staff']);
+  if(perms.branches) manageItems.push(['branches','Branches']);
+  if(perms.reports) manageItems.push(['reports','Reports']);
+  if(manageItems.length) sections.push({sec:'Manage', items:manageItems});
+  return sections;
+}
+
+function syncStatusHtml(){
+  const online = navigator.onLine;
+  const pending = outbox.length;
+  if(online && !pending) return '';
+  if(!online){
+    return '<div style="background:var(--danger-soft);color:var(--danger);border-radius:8px;padding:7px 9px;font-size:12px;font-weight:600;margin-bottom:8px;">' +
+      'Offline' + (pending ? ' · '+pending+' change'+(pending===1?'':'s')+' saved, will sync' : ' — changes are saved on this device') + '</div>';
+  }
+  return '<div style="background:var(--warning-soft);color:var(--warning);border-radius:8px;padding:7px 9px;font-size:12px;font-weight:600;margin-bottom:8px;">' +
+    'Syncing '+pending+' change'+(pending===1?'':'s')+'…</div>';
 }
 
 function renderShell(){
   const cs = state.currentStaff;
-  const sections = navItemsFor(cs.role);
+  const sections = navItemsFor(cs);
   const navHtml = sections.map(sec => (
     '<div class="nav-section-label">'+esc(sec.sec)+'</div>' +
     sec.items.map(([key,label]) =>
@@ -476,7 +723,8 @@ function renderShell(){
         '<div class="brand"><div class="brand-mark">AF</div><div><div class="brand-name">Afromia</div><div class="brand-sub">Training Institute</div></div></div>' +
         '<div class="nav">'+navHtml+'</div>' +
         '<div class="sidebar-foot">' +
-          '<div class="who"><b>'+esc(cs.name)+'</b>'+esc(cs.role==='admin'?'Administrator':'Trainer')+' · '+esc(cs.branchId==='all'?'All branches':branchName(cs.branchId))+'</div>' +
+          syncStatusHtml() +
+          '<div class="who"><b>'+esc(cs.name)+'</b>'+esc(cs.role==='admin'?'Administrator':(isLegacyStaff()?'Trainer':'Staff'))+' · '+esc(cs.branchId==='all'?'All branches':branchName(cs.branchId))+'</div>' +
           '<button class="btn btn-ghost btn-sm" id="btn-logout" style="width:100%;justify-content:center;margin-top:4px;">Sign out</button>' +
         '</div>' +
       '</div>' +
@@ -572,6 +820,51 @@ function persistSession(token, staff){
   try{ sessionStorage.setItem('atm_token', token); sessionStorage.setItem('atm_staff', JSON.stringify(staff)); }catch(e){}
 }
 
+/** Blocks the rest of the app until an account flagged mustChangePassword
+ * (set by an administrator creating or resetting someone else's login)
+ * picks its own new password. Fetches the full staff document first rather
+ * than reconstructing it from state.currentStaff, since the login response
+ * only carries a few fields -- PUT /api/db/staff/:id is a full replace, so
+ * sending a partial object here would silently wipe the rest (username,
+ * role, branchId, ...). */
+function renderForcedPasswordChange(){
+  root.innerHTML =
+    '<div class="login-wrap"><div class="login-card">' +
+      '<div class="login-brand"><div class="brand-mark" style="width:42px;height:42px;font-size:17px;">AF</div>' +
+        '<div><h1 style="font-size:19px;">Set a new password</h1><div class="desc muted" style="font-size:12.5px;">For security, choose your own password before continuing.</div></div></div>' +
+      '<div class="field"><label>New password</label><input type="password" id="f-newpw1" autocomplete="new-password"></div>' +
+      '<div class="field"><label>Confirm new password</label><input type="password" id="f-newpw2" autocomplete="new-password"></div>' +
+      '<div class="hint">At least 6 characters.</div>' +
+      '<div class="hint" id="pwchange-error" style="color:var(--danger);display:none;"></div>' +
+      '<button class="btn btn-primary" id="btn-pwchange" style="width:100%;justify-content:center;">Set password &amp; continue</button>' +
+    '</div></div>';
+
+  function showError(msg){ const el = document.getElementById('pwchange-error'); el.textContent = msg; el.style.display='block'; }
+
+  async function submit(){
+    const pw1 = document.getElementById('f-newpw1').value;
+    const pw2 = document.getElementById('f-newpw2').value;
+    if(pw1.length < 6){ showError('Password must be at least 6 characters'); return; }
+    if(pw1 !== pw2){ showError('Passwords do not match'); return; }
+    const btn = document.getElementById('btn-pwchange'); btn.disabled = true;
+    document.getElementById('pwchange-error').style.display = 'none';
+    try{
+      const id = state.currentStaff.id;
+      const existingDoc = await apiFetch('/api/db/staff/'+encodeURIComponent(id));
+      const full = Object.assign({}, existingDoc.data, { password: pw1, mustChangePassword: false });
+      const updated = await apiFetch('/api/db/staff/'+encodeURIComponent(id), { method:'PUT', body: JSON.stringify(full) });
+      state.currentStaff = Object.assign({}, state.currentStaff, updated.data, { mustChangePassword: false });
+      try{ sessionStorage.setItem('atm_staff', JSON.stringify(state.currentStaff)); }catch(e){}
+      render();
+    }catch(e){
+      showError(e.message || 'Could not update password');
+      btn.disabled = false;
+    }
+  }
+  document.getElementById('btn-pwchange').addEventListener('click', submit);
+  document.getElementById('f-newpw2').addEventListener('keydown', e=>{ if(e.key==='Enter') submit(); });
+}
+
 function doLogout(){
   authToken = null;
   state.currentStaff = null;
@@ -601,7 +894,13 @@ function openModal({title, bodyHtml, submitLabel, onSubmit, wide}){
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
   document.getElementById('modal-overlay').addEventListener('click', e=>{ if(e.target.id==='modal-overlay') closeModal(); });
-  if(submitLabel) document.getElementById('modal-submit').addEventListener('click', onSubmit);
+  if(submitLabel) document.getElementById('modal-submit').addEventListener('click', async ()=>{
+    const btn = document.getElementById('modal-submit');
+    if(btn){ btn.disabled = true; }
+    try { await onSubmit(); }
+    catch(e){ toast(e && e.message ? e.message : 'Something went wrong — please try again'); }
+    finally { if(btn){ btn.disabled = false; } }
+  });
 }
 function closeModal(){ modalRoot.innerHTML=''; }
 
@@ -684,6 +983,27 @@ function statusPillCohort(s){
   if(s==='cancelled') return '<span class="pill pill-danger">Cancelled</span>';
   return '<span class="pill pill-accent">Active</span>';
 }
+// A fuller at-a-glance overview for a batch's detail page: payment and
+// document-readiness stats across the whole roster, visible above every
+// sub-tab (not just the Finance tab, which only covers logged revenue/cost).
+function cohortStatsHtml(roster){
+  const n = roster.length;
+  if(!n) return '';
+  const paidFull = roster.filter(t=>traineeBalance(t).status==='Paid in full').length;
+  const partial = roster.filter(t=>traineeBalance(t).status==='Partially paid').length;
+  const notPaid = n - paidFull - partial;
+  const docsReady = roster.filter(t=>t.idStatus==='cleared' && t.medicalStatus==='cleared' && t.policeStatus==='cleared').length;
+  const cocPassed = roster.filter(t=>t.cocStatus==='passed').length;
+  const pct = (x)=> n? Math.round(x/n*100)+'%' : '';
+  return '<div class="grid grid-stats" style="margin-bottom:14px;">' +
+    statTile('Trainees', n, '') +
+    statTile('Paid in full', paidFull, pct(paidFull)) +
+    statTile('Partially paid', partial, pct(partial)) +
+    statTile('Not paid', notPaid, pct(notPaid)) +
+    statTile('Docs fully cleared', docsReady, pct(docsReady)) +
+    statTile('CoC passed', cocPassed, pct(cocPassed)) +
+  '</div>';
+}
 
 function attentionTable(list){
   return '<div class="table-wrap"><table class="tbl"><thead><tr><th>Trainee</th><th>Branch</th><th>ID</th><th>Medical</th><th>Police</th><th>CoC</th></tr></thead><tbody>' +
@@ -700,12 +1020,51 @@ function renderTrainees(main){
   const trainees = scopedTrainees();
   main.innerHTML =
     '<div class="topbar"><div><h1>Trainees</h1><div class="desc">'+trainees.length+' enrolled</div></div>' +
-      '<div class="topbar-actions">'+branchSwitcherHtml()+(isAdmin()?'<button class="btn btn-primary" id="btn-add-trainee">+ Enroll trainee</button>':'')+'</div></div>' +
+      '<div class="topbar-actions">'+branchSwitcherHtml()+((isAdmin()||hasPerm('trainees'))?'<button class="btn btn-primary" id="btn-add-trainee">+ Enroll trainee</button>':'')+'</div></div>' +
     '<div class="card">' + (trainees.length ? traineesTable(trainees) : '<div class="empty-state">No trainees in this scope yet.</div>') + '</div>';
   bindBranchSwitcher();
   document.querySelectorAll('[data-open-trainee]').forEach(el=>el.addEventListener('click', ()=>{ state.traineeDetail = el.dataset.openTrainee; render(); }));
   const addBtn = document.getElementById('btn-add-trainee');
   if(addBtn) addBtn.addEventListener('click', ()=>openTraineeForm());
+}
+
+/* ---------------------------------------------------------------------- */
+/* partial payments — fee + payment log, auto-computed balance            */
+/* ---------------------------------------------------------------------- */
+
+function defaultTuitionFee(){ const r = state.settings.rates||{}; return Number(r.tuitionFee)||0; }
+// Returns the trainee's real, persisted payment entries. Trainees created
+// before this payment ledger existed only have the old single paymentAmount
+// field — synthesize one entry from it (never written back unless/until a
+// new payment is logged, at which point it's migrated into a real entry).
+function paymentsOf(t){
+  if(Array.isArray(t.payments)) return t.payments;
+  if(t.paymentAmount){
+    return [{id:'legacy', amount:Number(t.paymentAmount)||0, date:t.paymentDate||'', method:'', receiptRef:t.receiptRef||'', notes:t.paymentNotes||'', recordedBy:''}];
+  }
+  return [];
+}
+function traineeFeeAmount(t){ return (t.feeAmount!=null && t.feeAmount!=='') ? Number(t.feeAmount)||0 : defaultTuitionFee(); }
+function traineeBalance(t){
+  const feeAmt = traineeFeeAmount(t);
+  const paid = paymentsOf(t).reduce((s,p)=>s+(Number(p.amount)||0),0);
+  const balance = Math.max(0, feeAmt-paid);
+  let status;
+  if(feeAmt<=0) status = paid>0 ? 'Paid in full' : 'No fee set';
+  else if(paid<=0) status = 'Not paid';
+  else if(paid>=feeAmt) status = 'Paid in full';
+  else status = 'Partially paid';
+  return {feeAmt, paid, balance, status};
+}
+function paymentPill(status){
+  if(status==='Paid in full') return '<span class="pill pill-success">Paid in full</span>';
+  if(status==='Partially paid') return '<span class="pill pill-warning">Partial</span>';
+  if(status==='No fee set') return '<span class="pill pill-neutral">No fee set</span>';
+  return '<span class="pill pill-danger">Not paid</span>';
+}
+function paymentCellHtml(t){
+  const b = traineeBalance(t);
+  return paymentPill(b.status) + (b.feeAmt>0 && b.balance>0 ? ' <span class="row-sub num">Bal '+fmtBirr(b.balance)+'</span>' : '');
 }
 
 function traineesTable(trainees){
@@ -714,21 +1073,22 @@ function traineesTable(trainees){
       const c = cohortById(t.cohortId);
       const room = state.dormRooms.find(r=>r.id===t.dormRoomId);
       return '<tr class="clickable" data-open-trainee="'+t.id+'">' +
-        '<td class="row-name">'+esc(t.name)+'<div class="row-sub">'+esc(t.phone||'')+'</div></td>' +
+        '<td class="row-name">'+esc(t.name)+(t._offlinePending?' <span class="pill pill-warning" title="Saved on this device, not yet synced to the server">Pending sync</span>':'')+'<div class="row-sub">'+esc(t.phone||'')+'</div></td>' +
         '<td>'+esc(branchName(t.branchId))+'</td>' +
         '<td>'+esc(c?c.code:'—')+'</td>' +
         '<td>'+pillForStatus(t.status)+'</td>' +
-        '<td>'+pillForPayment(t.paymentStatus)+(t.paymentAmount?' <span class="row-sub num">'+fmtBirr(t.paymentAmount)+'</span>':'')+'</td>' +
+        '<td>'+paymentCellHtml(t)+'</td>' +
         '<td>'+pillForCoc(t.cocStatus)+'</td>' +
         '<td>'+(room? esc(room.roomName)+(t.bedNumber?' · bed '+esc(t.bedNumber):'') : '<span class="muted">Unassigned</span>')+'</td>' +
       '</tr>';
     }).join('') + '</tbody></table></div>';
 }
 
-function openTraineeForm(existing){
+function openTraineeForm(existing, presetCohort){
   const branches = state.branches;
   const cohorts = state.cohorts.filter(c=> !existing || true);
-  const bId = existing ? existing.branchId : (isAdmin() ? (branches[0]||{}).id : state.currentStaff.branchId);
+  const bId = existing ? existing.branchId : (presetCohort ? presetCohort.branchId : (isAdmin() ? (branches[0]||{}).id : state.currentStaff.branchId));
+  const defaultCohortId = existing ? existing.cohortId : (presetCohort ? presetCohort.id : null);
   openModal({
     title: existing ? 'Edit trainee' : 'Enroll trainee', wide:true,
     bodyHtml:
@@ -754,11 +1114,15 @@ function openTraineeForm(existing){
       '</div>' +
       '<div class="field-row">' +
         '<div class="field"><label>Branch</label><select id="f-branch">'+branches.map(b=>'<option value="'+b.id+'"'+(b.id===bId?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select></div>' +
-        '<div class="field"><label>Cohort</label><select id="f-cohort"><option value="">— Unassigned —</option>'+state.cohorts.map(c=>'<option value="'+c.id+'"'+(existing?.cohortId===c.id?' selected':'')+'>'+esc(c.code)+' ('+esc(branchName(c.branchId))+')</option>').join('')+'</select></div>' +
+        '<div class="field"><label>Cohort</label><select id="f-cohort"><option value="">— Unassigned —</option>'+state.cohorts.map(c=>'<option value="'+c.id+'"'+(defaultCohortId===c.id?' selected':'')+'>'+esc(c.code)+' ('+esc(branchName(c.branchId))+')</option>').join('')+'</select></div>' +
       '</div>' +
       '<div class="field-row">' +
         '<div class="field"><label>Intake date</label><input type="date" id="f-intake" value="'+esc(existing?.intakeDate||todayStr())+'"></div>' +
         '<div class="field"><label>Status</label><select id="f-status">'+TRAINEE_STATES.map(s=>'<option value="'+s+'"'+(existing?.status===s?' selected':'')+'>'+esc(s)+'</option>').join('')+'</select></div>' +
+      '</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label>Fee amount (ETB)</label><input type="number" id="f-fee" value="'+esc(existing?(existing.feeAmount!=null?existing.feeAmount:''):defaultTuitionFee())+'"></div>' +
+        '<div class="field"><div class="hint" style="margin-top:22px;">Defaults to the tuition rate in Settings — override per trainee if needed.</div></div>' +
       '</div>' +
       '<div class="field-row">' +
         '<div class="field"><label>ID / kebele card</label><select id="f-id">'+DOC_STATES.map(s=>'<option value="'+s+'"'+(existing?.idStatus===s?' selected':'')+'>'+esc(s)+'</option>').join('')+'</select></div>' +
@@ -784,9 +1148,17 @@ function openTraineeForm(existing){
         status:document.getElementById('f-status').value, idStatus:document.getElementById('f-id').value,
         medicalStatus:document.getElementById('f-medical').value, policeStatus:document.getElementById('f-police').value,
         notes:document.getElementById('f-notes').value.trim(),
+        feeAmount: document.getElementById('f-fee').value===''? null : (Number(document.getElementById('f-fee').value)||0),
       };
-      if(existing){ body.cocStatus = existing.cocStatus||'not-started'; await state.db.collection('trainees').doc(existing.id).update(body); toast('Trainee updated'); }
-      else { body.cocStatus='not-started'; body.dormRoomId=null; body.bedNumber=''; body.paymentStatus=''; body.paymentAmount=0; body.paymentDate=''; body.receiptRef=''; body.paymentNotes=''; await state.db.collection('trainees').add(body); toast('Trainee enrolled'); }
+      if(existing){
+        body.cocStatus = existing.cocStatus||'not-started';
+        const r = await state.db.collection('trainees').doc(existing.id).update(body);
+        toast(r && r.queued ? 'Saved offline — will sync automatically once back online' : 'Trainee updated');
+      } else {
+        body.cocStatus='not-started'; body.dormRoomId=null; body.bedNumber=''; body.payments=[]; body.paymentStatus=''; body.paymentAmount=0; body.paymentDate=''; body.receiptRef=''; body.paymentNotes='';
+        const r = await state.db.collection('trainees').add(body);
+        toast(r && r.queued ? 'Trainee saved offline — will sync automatically once back online' : 'Trainee enrolled');
+      }
       closeModal();
     }
   });
@@ -807,7 +1179,7 @@ function renderTraineeDetail(main){
       '<button class="btn btn-ghost btn-sm" id="back-btn">← Back</button>' +
       '<h1 style="margin-top:8px;">'+esc(t.name)+'</h1>' +
       '<div class="desc">'+esc(branchName(t.branchId))+' · '+esc(c?c.code:'No batch')+' · '+pillForStatus(t.status)+'</div></div>' +
-      (isAdmin() ? '<div class="topbar-actions"><button class="btn" id="btn-edit-trainee">Edit</button><button class="btn" id="btn-payment">Update payment</button><button class="btn" id="btn-coc">Update CoC</button><button class="btn" id="btn-dorm">Assign dorm</button></div>' : '') +
+      ((isAdmin()||hasPerm('trainees')) ? '<div class="topbar-actions"><button class="btn" id="btn-edit-trainee">Edit</button><button class="btn" id="btn-coc">Update CoC</button><button class="btn" id="btn-dorm">Assign dorm</button></div>' : '') +
     '</div>' +
     '<div class="tabs">' +
       ['overview','Assessments','Attendance'].map((x,i)=>{
@@ -820,7 +1192,6 @@ function renderTraineeDetail(main){
   document.getElementById('back-btn').addEventListener('click', ()=>{ state.traineeDetail=null; render(); });
   document.querySelectorAll('[data-sub]').forEach(b=>b.addEventListener('click', ()=>{ state.traineeTabs[t.id]=b.dataset.sub; render(); }));
   const editBtn = document.getElementById('btn-edit-trainee'); if(editBtn) editBtn.addEventListener('click', ()=>openTraineeForm(t));
-  const payBtn = document.getElementById('btn-payment'); if(payBtn) payBtn.addEventListener('click', ()=>openPaymentForm(t));
   const cocBtn = document.getElementById('btn-coc'); if(cocBtn) cocBtn.addEventListener('click', ()=>openCocForm(t));
   const dormBtn = document.getElementById('btn-dorm'); if(dormBtn) dormBtn.addEventListener('click', ()=>openDormAssignForm(t));
 
@@ -831,11 +1202,12 @@ function renderTraineeDetail(main){
         infoCard('Personal', [['Phone',t.phone||'—'],['Gender',t.gender||'—'],['Age',t.age!=null?t.age:'—'],['Region / origin',t.region||'—'],['City / Zone',t.cityZone||'—'],['Woreda / Kebele',t.woredaKebele||'—'],['Education level',t.educationLevel!=null&&t.educationLevel!==''?t.educationLevel:'—'],['Labour ID / Passport',[t.labourId,t.passportNo].filter(Boolean).join(' · ')||'—'],['Intake date',fmtDate(t.intakeDate)]]) +
         infoCard('Readiness', [['ID / kebele card',pillForDoc(t.idStatus)],['Medical clearance',pillForDoc(t.medicalStatus)],['Police clearance',pillForDoc(t.policeStatus)],['CoC status',pillForCoc(t.cocStatus)+(t.cocExamDate?'  ·  exam '+fmtDate(t.cocExamDate):'')+(t.cocCertNumber?'  ·  #'+esc(t.cocCertNumber):'')]]) +
       '</div>' +
-      infoCard('Payment', [['Status',pillForPayment(t.paymentStatus)],['Amount',fmtBirr(t.paymentAmount)],['Payment date',fmtDate(t.paymentDate)],['Receipt ref',t.receiptRef||'—'],['Notes',t.paymentNotes||'—']]) +
+      paymentCard(t) +
       '<div class="card"><div class="card-head"><h2>Dormitory</h2></div>' +
         (room ? '<div>'+esc(room.roomName)+' · bed '+esc(t.bedNumber||'—')+' · checked in '+fmtDate(t.checkInDate)+'</div>' : '<div class="muted">Not assigned to a room.</div>') +
       '</div>' +
       (t.notes ? '<div class="card"><div class="card-head"><h2>Notes</h2></div><div>'+esc(t.notes)+'</div></div>' : '');
+    const logPayBtn = document.getElementById('btn-log-payment'); if(logPayBtn) logPayBtn.addEventListener('click', ()=>openLogPaymentForm(t));
   } else if(sub==='assessments'){
     renderTraineeAssessments(body, t);
   } else {
@@ -846,6 +1218,76 @@ function infoCard(title, rows){
   return '<div class="card"><div class="card-head"><h2>'+esc(title)+'</h2></div>' +
     rows.map(([k,v])=>'<div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--border);"><span class="muted" style="font-size:12.5px;">'+esc(k)+'</span><span>'+v+'</span></div>').join('') +
     '</div>';
+}
+
+function paymentCard(t){
+  const b = traineeBalance(t);
+  const payments = paymentsOf(t);
+  const canEdit = isAdmin()||hasPerm('trainees');
+  return '<div class="card"><div class="card-head"><div><h2>Fee &amp; payments</h2><div class="sub">'+paymentPill(b.status)+'</div></div>' +
+      (canEdit?'<button class="btn btn-sm btn-primary" id="btn-log-payment">+ Log payment</button>':'') +
+    '</div>' +
+    '<div class="grid grid-stats" style="margin-bottom:10px;">' +
+      statTile('Fee amount', fmtBirr(b.feeAmt), '') + statTile('Paid so far', fmtBirr(b.paid), payments.length+' payment'+(payments.length===1?'':'s')) + statTile('Balance remaining', fmtBirr(b.balance), '') +
+    '</div>' +
+    (payments.length ?
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Receipt ref</th><th>Notes</th><th>Recorded by</th></tr></thead><tbody>' +
+        payments.slice().sort((a,b2)=>String(b2.date||'').localeCompare(String(a.date||''))).map(p=>
+          '<tr><td>'+fmtDate(p.date)+'</td><td class="num">'+fmtBirr(p.amount)+'</td><td>'+esc(p.method||'—')+'</td><td class="row-sub">'+esc(p.receiptRef||'—')+'</td><td class="row-sub">'+esc(p.notes||'')+'</td><td class="row-sub">'+esc(p.recordedBy||'—')+'</td></tr>'
+        ).join('') +
+      '</tbody></table></div>'
+      : '<div class="empty-state">No payments logged yet.</div>') +
+  '</div>';
+}
+
+const PAYMENT_METHODS = ['Cash','Bank transfer','Mobile money','Other'];
+function openLogPaymentForm(t){
+  const b = traineeBalance(t);
+  openModal({
+    title:'Log payment — '+t.name,
+    bodyHtml:
+      '<div class="hint" style="margin-bottom:8px;">Fee '+fmtBirr(b.feeAmt)+' · paid so far '+fmtBirr(b.paid)+' · balance '+fmtBirr(b.balance)+'</div>' +
+      '<div class="field-row"><div class="field"><label>Amount received (ETB)</label><input type="number" id="f-pay-amount" value="'+(b.balance>0?b.balance:'')+'"></div>' +
+      '<div class="field"><label>Date</label><input type="date" id="f-pay-date" value="'+todayStr()+'"></div></div>' +
+      '<div class="field-row"><div class="field"><label>Method</label><select id="f-pay-method">'+PAYMENT_METHODS.map(m=>'<option value="'+m+'">'+m+'</option>').join('')+'</select></div>' +
+      '<div class="field"><label>Receipt reference</label><input id="f-pay-ref"></div></div>' +
+      '<div class="field"><label>Notes</label><textarea id="f-pay-notes"></textarea></div>',
+    submitLabel:'Log payment',
+    onSubmit: async ()=>{
+      const amt = Number(document.getElementById('f-pay-amount').value)||0;
+      if(amt<=0){ toast('Enter an amount greater than zero'); return; }
+      const newEntry = {
+        id:newLocalId(), amount:amt, date:document.getElementById('f-pay-date').value||todayStr(),
+        method:document.getElementById('f-pay-method').value, receiptRef:document.getElementById('f-pay-ref').value.trim(),
+        notes:document.getElementById('f-pay-notes').value.trim(), recordedBy:state.currentStaff.name, recordedAt:new Date().toISOString(),
+      };
+      let payments = Array.isArray(t.payments) ? t.payments.slice() : [];
+      if(!Array.isArray(t.payments) && t.paymentAmount){
+        // migrate the old single-payment fields into a real ledger entry so nothing is lost
+        payments.push({ id:'migrated-'+t.id, amount:Number(t.paymentAmount)||0, date:t.paymentDate||'', method:'', receiptRef:t.receiptRef||'', notes:t.paymentNotes||'', recordedBy:'', recordedAt:'' });
+      }
+      payments.push(newEntry);
+      const feeAmount = traineeFeeAmount(t);
+      const totalPaid = payments.reduce((s,p)=>s+(Number(p.amount)||0),0);
+      const r = await state.db.collection('trainees').doc(t.id).update({
+        feeAmount, payments,
+        // keep the legacy single-payment fields in sync too, so the dashboard
+        // tiles and spreadsheet/record-book exports (which still read these)
+        // show a sensible summary without needing their own rewrite.
+        paymentAmount: totalPaid,
+        paymentStatus: totalPaid<=0 ? 'Not Paid' : (feeAmount>0 && totalPaid>=feeAmount ? 'Paid' : 'Paid - Verify'),
+        paymentDate: newEntry.date, receiptRef: newEntry.receiptRef, paymentNotes: newEntry.notes,
+      });
+      closeModal(); toast(r && r.queued ? 'Saved offline — will sync automatically once back online' : 'Payment logged');
+      try {
+        const c = cohortById(t.cohortId);
+        await state.db.collection('revenueLog').add({
+          date:newEntry.date, category:'Tuition Fees', description:'Tuition payment — '+t.name+(c?(' ('+c.code+')'):''),
+          amount:amt, batchNum: c?batchNumFromCode(c.code):null, notes:newEntry.notes, traineeId:t.id,
+        });
+      } catch(e) { /* don't block the payment if the auto revenue-log entry fails */ }
+    }
+  });
 }
 
 function openCocForm(t){
@@ -863,23 +1305,6 @@ function openCocForm(t){
   });
 }
 
-function openPaymentForm(t){
-  openModal({
-    title:'Update payment — '+t.name,
-    bodyHtml:
-      '<div class="field"><label>Status</label><select id="f-paystatus"><option value="">— None —</option>'+PAYMENT_STATES.map(s=>'<option value="'+s+'"'+(t.paymentStatus===s?' selected':'')+'>'+esc(s)+'</option>').join('')+'</select></div>' +
-      '<div class="field-row"><div class="field"><label>Amount (ETB)</label><input type="number" id="f-payamt" value="'+esc(t.paymentAmount||'')+'"></div>' +
-      '<div class="field"><label>Payment date</label><input type="date" id="f-paydate" value="'+esc(t.paymentDate||'')+'"></div></div>' +
-      '<div class="field"><label>Receipt reference</label><input id="f-payref" value="'+esc(t.receiptRef||'')+'"></div>' +
-      '<div class="field"><label>Notes</label><textarea id="f-paynotes">'+esc(t.paymentNotes||'')+'</textarea></div>',
-    submitLabel:'Save',
-    onSubmit: async ()=>{
-      await state.db.collection('trainees').doc(t.id).update({paymentStatus:document.getElementById('f-paystatus').value, paymentAmount:Number(document.getElementById('f-payamt').value)||0,
-        paymentDate:document.getElementById('f-paydate').value, receiptRef:document.getElementById('f-payref').value.trim(), paymentNotes:document.getElementById('f-paynotes').value.trim()});
-      closeModal(); toast('Payment updated');
-    }
-  });
-}
 
 function openDormAssignForm(t){
   const rooms = state.dormRooms.filter(r=>r.branchId===t.branchId);
@@ -941,7 +1366,7 @@ function renderCohorts(main){
   const cohorts = scopedCohorts();
   main.innerHTML =
     '<div class="topbar"><div><h1>Batches</h1><div class="desc">Training batches — finance, attendance, assessments and CoC progress live inside each batch.</div></div>' +
-      '<div class="topbar-actions">'+branchSwitcherHtml()+(isAdmin()?'<button class="btn btn-primary" id="btn-add-cohort">+ New batch</button>':'')+'</div></div>' +
+      '<div class="topbar-actions">'+branchSwitcherHtml()+((isAdmin()||hasPerm('cohorts'))?'<button class="btn btn-primary" id="btn-add-cohort">+ New batch</button>':'')+'</div></div>' +
     '<div class="card">'+(cohorts.length? cohortsTable(cohorts) : '<div class="empty-state">No batches in this scope yet.</div>')+'</div>';
   bindBranchSwitcher();
   document.querySelectorAll('[data-open-cohort]').forEach(el=>el.addEventListener('click', ()=>{ state.cohortDetail = el.dataset.openCohort; render(); }));
@@ -985,8 +1410,9 @@ function renderCohortDetail(main){
       '<button class="btn btn-ghost btn-sm" id="back-btn">← Back</button>' +
       '<h1 style="margin-top:8px;">'+esc(c.code)+'</h1>' +
       '<div class="desc">'+esc(branchName(c.branchId))+' · '+esc(c.track)+' · started '+fmtDate(c.startDate)+' · '+statusPillCohort(c.status)+'</div></div>' +
-      (isAdmin()? '<div class="topbar-actions"><button class="btn" id="btn-edit-cohort">Edit batch</button></div>' : '') +
+      ((isAdmin()||hasPerm('cohorts'))? '<div class="topbar-actions"><button class="btn" id="btn-edit-cohort">Edit batch</button></div>' : '') +
     '</div>' +
+    cohortStatsHtml(roster) +
     '<div class="tabs">' +
       [['roster','Roster'],['finance','Finance'],['attendance','Take attendance'],['assessments','Assessments']].map(([k,l])=>
         '<button class="tab-btn'+(sub===k?' active':'')+'" data-sub="'+k+'">'+l+'</button>').join('') +
@@ -997,9 +1423,14 @@ function renderCohortDetail(main){
 
   const body = document.getElementById('sub-body');
   if(sub==='roster'){
-    body.innerHTML = '<div class="card"><div class="card-head"><h2>Roster</h2><span class="pill pill-neutral">'+roster.length+' trainees</span></div>' +
+    const canEnroll = isAdmin()||hasPerm('trainees');
+    body.innerHTML = '<div class="card"><div class="card-head"><h2>Roster</h2><div style="display:flex;align-items:center;gap:8px;">' +
+      '<span class="pill pill-neutral">'+roster.length+' trainees</span>' +
+      (canEnroll?'<button class="btn btn-sm btn-primary" id="btn-enroll-into-batch">+ Enroll trainee</button>':'') +
+      '</div></div>' +
       (roster.length? traineesTable(roster) : '<div class="empty-state">No trainees assigned to this batch yet.</div>') + '</div>';
     document.querySelectorAll('[data-open-trainee]').forEach(el=>el.addEventListener('click', ()=>{ state.traineeDetail = el.dataset.openTrainee; render(); }));
+    const enrollBtn = document.getElementById('btn-enroll-into-batch'); if(enrollBtn) enrollBtn.addEventListener('click', ()=>openTraineeForm(null, c));
   } else if(sub==='finance'){
     renderCohortFinance(body, c);
   } else if(sub==='attendance'){
@@ -1062,8 +1493,13 @@ function renderTakeAttendance(body, c, roster){
   loadForDate(date);
   document.getElementById('save-att').addEventListener('click', async ()=>{
     const d = dateInput.value;
-    await state.db.doc('attendance/'+c.id+'_'+d).set({cohortId:c.id, date:d, records:marks, takenBy:state.currentStaff.name});
-    toast('Attendance saved for '+fmtDate(d));
+    const btn = document.getElementById('save-att');
+    if(btn) btn.disabled = true;
+    try {
+      const r = await state.db.doc('attendance/'+c.id+'_'+d).set({cohortId:c.id, date:d, records:marks, takenBy:state.currentStaff.name});
+      toast(r && r.queued ? 'Saved offline — will sync once back online' : ('Attendance saved for '+fmtDate(d)));
+    } catch(e) { toast(e && e.message ? e.message : 'Could not save attendance'); }
+    finally { if(btn) btn.disabled = false; }
   });
 }
 
@@ -1115,7 +1551,7 @@ function renderDormitory(main){
   const rooms = scopedDormRooms();
   main.innerHTML =
     '<div class="topbar"><div><h1>Dormitory</h1><div class="desc">Boarding for trainees during residential pre-departure training.</div></div>' +
-      '<div class="topbar-actions">'+branchSwitcherHtml()+(isAdmin()?'<button class="btn btn-primary" id="btn-add-room">+ Add room</button>':'')+'</div></div>' +
+      '<div class="topbar-actions">'+branchSwitcherHtml()+((isAdmin()||hasPerm('dormitory'))?'<button class="btn btn-primary" id="btn-add-room">+ Add room</button>':'')+'</div></div>' +
     '<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));">' +
       (rooms.length ? rooms.map(roomCard).join('') : '<div class="card empty-state">No rooms set up yet.</div>') +
     '</div>';
@@ -1128,7 +1564,7 @@ function roomCard(r){
   const cap = Number(r.capacity)||0;
   const pct = cap? Math.min(100, Math.round(occ.length/cap*100)) : 0;
   return '<div class="card"><div class="card-head"><div><h2>'+esc(r.roomName)+'</h2><div class="sub">'+esc(branchName(r.branchId))+'</div></div>' +
-    (isAdmin()?'<button class="btn btn-sm btn-ghost" data-edit-room="'+r.id+'">Edit</button>':'')+'</div>' +
+    ((isAdmin()||hasPerm('dormitory'))?'<button class="btn btn-sm btn-ghost" data-edit-room="'+r.id+'">Edit</button>':'')+'</div>' +
     '<div class="flex-between" style="margin-bottom:6px;"><span class="muted" style="font-size:12.5px;">'+occ.length+' / '+cap+' beds</span></div>' +
     '<div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;"></div></div>' +
     (occ.length? '<div style="margin-top:10px;display:flex;flex-direction:column;gap:4px;">'+occ.map(t=>'<div class="row-sub">'+esc(t.name)+(t.bedNumber?' · bed '+esc(t.bedNumber):'')+'</div>').join('')+'</div>' : '<div class="muted" style="font-size:12.5px;margin-top:8px;">Empty</div>') +
@@ -1159,11 +1595,11 @@ function openRoomForm(existing){
 function renderCurriculum(main){
   main.innerHTML =
     '<div class="topbar"><div><h1>Curriculum</h1><div class="desc">'+esc(CURRICULUM_SEED_NOTE)+'</div></div>' +
-      (isAdmin()?'<div class="topbar-actions"><button class="btn btn-primary" id="btn-add-module">+ Add module</button></div>':'') +
+      ((isAdmin()||hasPerm('curriculum'))?'<div class="topbar-actions"><button class="btn btn-primary" id="btn-add-module">+ Add module</button></div>':'') +
     '</div>' +
     '<div class="card">' +
-      '<div class="table-wrap"><table class="tbl"><thead><tr><th>#</th><th>Module</th><th>Category</th><th>Hours</th>'+(isAdmin()?'<th></th>':'')+'</tr></thead><tbody>' +
-      state.modules.map((m,i)=>'<tr><td class="num muted">'+(i+1)+'</td><td class="row-name">'+esc(m.name)+'</td><td>'+esc(m.category)+'</td><td class="num">'+esc(m.hours)+'</td>'+(isAdmin()?'<td><button class="btn btn-sm btn-ghost" data-edit-mod="'+m.id+'">Edit</button></td>':'')+'</tr>').join('') +
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th>#</th><th>Module</th><th>Category</th><th>Hours</th>'+((isAdmin()||hasPerm('curriculum'))?'<th></th>':'')+'</tr></thead><tbody>' +
+      state.modules.map((m,i)=>'<tr><td class="num muted">'+(i+1)+'</td><td class="row-name">'+esc(m.name)+'</td><td>'+esc(m.category)+'</td><td class="num">'+esc(m.hours)+'</td>'+((isAdmin()||hasPerm('curriculum'))?'<td><button class="btn btn-sm btn-ghost" data-edit-mod="'+m.id+'">Edit</button></td>':'')+'</tr>').join('') +
       '</tbody></table></div>' +
       '<div class="row-sub" style="margin-top:10px;">Total hours: '+state.modules.reduce((s,m)=>s+(Number(m.hours)||0),0)+'</div>' +
     '</div>';
@@ -1194,30 +1630,61 @@ function openModuleForm(existing){
 /* staff (admin)                                                           */
 /* ---------------------------------------------------------------------- */
 
+function accessSummaryHtml(s){
+  if(s.role==='admin') return '<span class="pill pill-gold">Full access</span>';
+  const perms = (s.permissions && typeof s.permissions==='object') ? s.permissions : null;
+  if(!perms) return '<span class="pill pill-neutral">Batches &amp; trainees (view) · attendance &amp; assessments</span>';
+  const on = PERMISSION_KEYS.filter(([k])=>perms[k]);
+  if(!on.length) return '<span class="pill pill-neutral">Sign-in only</span>';
+  return on.map(([k,label])=>'<span class="pill pill-neutral">'+esc(label)+'</span>').join(' ');
+}
 function renderStaff(main){
   main.innerHTML =
-    '<div class="topbar"><div><h1>Staff</h1><div class="desc">Administrators and trainers who can sign in.</div></div>' +
+    '<div class="topbar"><div><h1>Staff</h1><div class="desc">Administrators and staff who can sign in — choose exactly what each person can see and do.</div></div>' +
       '<div class="topbar-actions"><button class="btn btn-primary" id="btn-add-staff">+ Add staff</button></div></div>' +
-    '<div class="card"><div class="table-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Branch</th><th>Phone</th><th>Status</th><th></th></tr></thead><tbody>' +
-      state.staff.map(s=>'<tr><td class="row-name">'+esc(s.name)+'</td><td class="row-sub">'+esc(s.username||'—')+'</td><td>'+esc(s.role)+'</td><td>'+esc(s.branchId==='all'?'All branches':branchName(s.branchId))+'</td><td>'+esc(s.phone||'—')+'</td>' +
+    '<div class="card"><div class="table-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Branch</th><th>Access</th><th>Status</th><th></th></tr></thead><tbody>' +
+      state.staff.map(s=>{
+        const canEditThis = isAdmin() || s.role!=='admin';
+        return '<tr><td class="row-name">'+esc(s.name)+'</td><td class="row-sub">'+esc(s.username||'—')+'</td><td>'+esc(s.role==='admin'?'Administrator':'Staff')+'</td><td>'+esc(s.branchId==='all'?'All branches':branchName(s.branchId))+'</td>' +
+        '<td>'+accessSummaryHtml(s)+'</td>' +
         '<td>'+(s.active===false?'<span class="pill pill-neutral">Inactive</span>':'<span class="pill pill-success">Active</span>')+'</td>' +
-        '<td><button class="btn btn-sm btn-ghost" data-edit-staff="'+s.id+'">Edit</button></td></tr>').join('') +
+        '<td>'+(canEditThis?'<button class="btn btn-sm btn-ghost" data-edit-staff="'+s.id+'">Edit</button>':'<span class="muted" style="font-size:12px;">—</span>')+'</td></tr>';
+      }).join('') +
     '</tbody></table></div></div>';
   document.getElementById('btn-add-staff').addEventListener('click', ()=>openStaffForm());
   document.querySelectorAll('[data-edit-staff]').forEach(el=>el.addEventListener('click', ()=>openStaffForm(state.staff.find(s=>s.id===el.dataset.editStaff))));
 }
 function openStaffForm(existing){
+  const viewerIsAdmin = isAdmin();
+  const editingSelf = !!(existing && state.currentStaff && existing.id===state.currentStaff.id);
+  const existingPerms = (existing?.permissions && typeof existing.permissions==='object') ? existing.permissions : {};
+  const permsHtml = PERMISSION_KEYS.map(([k,label,desc])=>{
+    // Only a true administrator can grant the 'staff' permission (it lets
+    // someone manage other staff accounts) or change permissions on an
+    // account editing itself.
+    const disabled = (k==='staff' && !viewerIsAdmin) || (editingSelf && !viewerIsAdmin);
+    return '<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-weight:400;">' +
+      '<input type="checkbox" id="f-perm-'+k+'" style="margin-top:3px;"'+(existingPerms[k]?' checked':'')+(disabled?' disabled':'')+'>' +
+      '<span>'+esc(label)+' <span class="muted" style="font-size:12px;">— '+desc+'</span>'+(disabled?' <span class="muted" style="font-size:11.5px;">(administrator only)</span>':'')+'</span></label>';
+  }).join('');
   openModal({
-    title: existing?'Edit staff account':'Add staff account',
+    title: existing?'Edit staff account':'Add staff account', wide:true,
     bodyHtml:
       '<div class="field-row"><div class="field"><label>Full name</label><input id="f-sname" value="'+esc(existing?.name||'')+'"></div>' +
       '<div class="field"><label>Phone</label><input id="f-sphone" value="'+esc(existing?.phone||'')+'"></div></div>' +
-      '<div class="field-row"><div class="field"><label>Role</label><select id="f-srole"><option value="admin"'+(existing?.role==='admin'?' selected':'')+'>Administrator</option><option value="trainer"'+(existing?.role==='trainer'?' selected':'')+'>Trainer</option></select></div>' +
+      '<div class="field-row"><div class="field"><label>Role</label><select id="f-srole">' +
+        (viewerIsAdmin?'<option value="admin"'+(existing?.role==='admin'?' selected':'')+'>Administrator (full access)</option>':'') +
+        '<option value="trainer"'+(existing?.role!=='admin'?' selected':'')+'>Staff (custom access)</option>' +
+      '</select></div>' +
       '<div class="field"><label>Branch</label><select id="f-sbranch"><option value="all"'+(existing?.branchId==='all'?' selected':'')+'>All branches (admin)</option>'+state.branches.map(b=>'<option value="'+b.id+'"'+(existing?.branchId===b.id?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select></div></div>' +
       '<div class="field-row"><div class="field"><label>Username</label><input id="f-susername" value="'+esc(existing?.username||'')+'" autocomplete="off"></div>' +
       '<div class="field"><label>Status</label><select id="f-sactive"><option value="true"'+(existing?.active!==false?' selected':'')+'>Active</option><option value="false"'+(existing?.active===false?' selected':'')+'>Inactive</option></select></div></div>' +
       '<div class="field"><label>'+(existing?'New password':'Password')+'</label><input type="password" id="f-spassword" autocomplete="new-password"></div>' +
-      '<div class="hint">'+(existing?'Leave blank to keep the current password. Otherwise, at least 6 characters.':'At least 6 characters.')+'</div>',
+      '<div class="hint">'+(existing?'Leave blank to keep the current password. Otherwise, at least 6 characters.':'At least 6 characters.')+'</div>' +
+      '<div class="field" id="f-perms-wrap"><label>Access</label>' +
+        '<div class="hint" style="margin-bottom:4px;">Choose exactly what this person can see and do. Leave everything unchecked for sign-in only.</div>' +
+        permsHtml +
+      '</div>',
     submitLabel: existing?'Save changes':'Add staff',
     onSubmit: async ()=>{
       const name = document.getElementById('f-sname').value.trim();
@@ -1226,8 +1693,14 @@ function openStaffForm(existing){
       if(!name||!username){ toast('Name and username are required'); return; }
       if(!existing && !password){ toast('Password is required'); return; }
       if(password && password.length < 6){ toast('Password must be at least 6 characters'); return; }
-      const body = {name, username, phone:document.getElementById('f-sphone').value.trim(), role:document.getElementById('f-srole').value,
+      const role = document.getElementById('f-srole').value;
+      const body = {name, username, phone:document.getElementById('f-sphone').value.trim(), role,
         branchId:document.getElementById('f-sbranch').value, active:document.getElementById('f-sactive').value==='true'};
+      if(role!=='admin'){
+        const permissions = {};
+        PERMISSION_KEYS.forEach(([k])=>{ permissions[k] = document.getElementById('f-perm-'+k).checked; });
+        body.permissions = permissions;
+      }
       if(password) body.password = password;
       try{
         if(existing) await state.db.collection('staff').doc(existing.id).update(body);
@@ -1236,6 +1709,10 @@ function openStaffForm(existing){
       }catch(e){ toast(e.message || 'Could not save staff account'); }
     }
   });
+  const roleSel = document.getElementById('f-srole');
+  const permsWrap = document.getElementById('f-perms-wrap');
+  function syncPermsVisibility(){ if(permsWrap) permsWrap.style.display = roleSel.value==='admin' ? 'none' : ''; }
+  if(roleSel){ roleSel.addEventListener('change', syncPermsVisibility); syncPermsVisibility(); }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -2105,6 +2582,7 @@ function openCocReportModal(cohort){
 
 /* ---------------------------------------------------------------------- */
 (function start(){
+  loadOutboxFromDisk();
   try{
     const cachedToken = sessionStorage.getItem('atm_token');
     const cachedStaff = sessionStorage.getItem('atm_staff');
