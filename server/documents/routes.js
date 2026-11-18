@@ -13,6 +13,7 @@
 const express = require('express');
 const { query } = require('../db');
 const { requireAuth, requireAdmin } = require('../auth');
+const { hasPermission } = require('../permissions');
 const { shapeCohortData, shapeUploadedRows, completeness } = require('./shared');
 const { generateCertificatesPdf } = require('./certificate');
 const { generateIdCardsPdf } = require('./idCards');
@@ -97,7 +98,15 @@ router.post('/generate-from-spreadsheet/:docType', async (req, res) => {
 
 /* ------------------------------------------------------------------ */
 /* DB-backed: a real cohort's own trainees                             */
+/* Everything below reads real trainee personal data, so it needs the  */
+/* 'reports' permission (admins always have it); the stateless         */
+/* spreadsheet routes above stay open to any signed-in staff member.   */
 /* ------------------------------------------------------------------ */
+
+router.use('/:cohortId', async (req, res, next) => {
+  if (await hasPermission(req.auth, 'reports')) return next();
+  res.status(403).json({ error: 'You do not have access to Reports' });
+});
 
 router.get('/:cohortId/status', async (req, res) => {
   try {
