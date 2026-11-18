@@ -3,20 +3,11 @@ const crypto = require('crypto');
 const path = require('path');
 const { query, initSchema, seedIfEmpty } = require('./db');
 const { signToken, hashPassword, comparePassword, requireAuth, requireAdmin } = require('./auth');
+const { canWriteCollection, assertStaffWriteAllowed } = require('./permissions');
 const reportsRouter = require('./documents/routes');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
-
-// Collections that any authenticated staff (admin or trainer) may write to,
-// because they're routine day-to-day duties (taking attendance, recording
-// assessment scores). Everything else requires an administrator.
-const STAFF_WRITABLE = new Set(['attendance', 'assessments']);
-
-function canWrite(auth, collection) {
-  if (auth.role === 'admin') return true;
-  return STAFF_WRITABLE.has(collection);
-}
 
 // Never let staff PINs/password hashes leave the server.
 function sanitizeStaffData(data) {
@@ -84,7 +75,11 @@ app.post('/api/auth/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Invalid username or password' });
     if (row.data.active === false) return res.status(403).json({ error: 'This account has been deactivated' });
 
-    const staff = { id: row.doc_id, name: row.data.name, role: row.data.role, branchId: row.data.branchId, phone: row.data.phone || '' };
+    const staff = {
+      id: row.doc_id, name: row.data.name, role: row.data.role, branchId: row.data.branchId, phone: row.data.phone || '',
+      mustChangePassword: !!row.data.mustChangePassword,
+      permissions: (row.data.permissions && typeof row.data.permissions === 'object') ? row.data.permissions : null,
+    };
     res.json({ token: signToken(staff), staff });
   } catch (e) {
     console.error(e);
@@ -130,8 +125,9 @@ app.get('/api/db/:collection/:docId', async (req, res) => {
   }
 });
 
-async function prepareWriteData(collection, incoming, existing) {
+async function prepareWriteData(collection, incoming, existing, auth) {
   if (collection !== 'staff') return incoming;
+  assertStaffWriteAllowed(auth, existing, incoming);
   const merged = { ...incoming };
   if (merged.password) {
     merged.passwordHash = await hashPassword(merged.password);
@@ -156,13 +152,13 @@ async function checkUsernameFree(username, excludeDocId) {
 app.post('/api/db/:collection', async (req, res) => {
   try {
     const { collection } = req.params;
-    if (!canWrite(req.auth, collection)) return res.status(403).json({ error: 'Administrator access required' });
+    if (!(await canWriteCollection(req.auth, collection))) return res.status(403).json({ error: 'You do not have access to do that' });
     const id = crypto.randomUUID();
     let data = req.body || {};
     if (collection === 'staff') {
       if (!data.username || !data.password) return res.status(400).json({ error: 'Username and password are required' });
       if (!(await checkUsernameFree(data.username, null))) return res.status(409).json({ error: 'That username is already taken' });
-      data = await prepareWriteData(collection, data, null);
+      data = await prepareWriteData(collection, data, null, req.auth);
     }
     await query(
       `INSERT INTO documents (collection, doc_id, data, updated_at) VALUES ($1, $2, $3::jsonb, now())`,
@@ -170,6 +166,7 @@ app.post('/api/db/:collection', async (req, res) => {
     );
     res.json({ id, data: sanitize(collection, data) });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error(e);
     res.status(500).json({ error: 'Server error' });
   }
@@ -179,13 +176,13 @@ app.post('/api/db/:collection', async (req, res) => {
 app.put('/api/db/:collection/:docId', async (req, res) => {
   try {
     const { collection, docId } = req.params;
-    if (!canWrite(req.auth, collection)) return res.status(403).json({ error: 'Administrator access required' });
+    if (!(await canWriteCollection(req.auth, collection))) return res.status(403).json({ error: 'You do not have access to do that' });
     let data = req.body || {};
     if (collection === 'staff') {
       const { rows } = await query(`SELECT data FROM documents WHERE collection = 'staff' AND doc_id = $1`, [docId]);
       const existing = rows[0] ? rows[0].data : null;
       if (data.username && !(await checkUsernameFree(data.username, docId))) return res.status(409).json({ error: 'That username is already taken' });
-      data = await prepareWriteData(collection, data, existing);
+      data = await prepareWriteData(collection, data, existing, req.auth);
     }
     await query(
       `INSERT INTO documents (collection, doc_id, data, updated_at) VALUES ($1, $2, $3::jsonb, now())
@@ -194,6 +191,7 @@ app.put('/api/db/:collection/:docId', async (req, res) => {
     );
     res.json({ id: docId, data: sanitize(collection, data) });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error(e);
     res.status(500).json({ error: 'Server error' });
   }
@@ -203,13 +201,13 @@ app.put('/api/db/:collection/:docId', async (req, res) => {
 app.patch('/api/db/:collection/:docId', async (req, res) => {
   try {
     const { collection, docId } = req.params;
-    if (!canWrite(req.auth, collection)) return res.status(403).json({ error: 'Administrator access required' });
+    if (!(await canWriteCollection(req.auth, collection))) return res.status(403).json({ error: 'You do not have access to do that' });
     const { rows } = await query(`SELECT data FROM documents WHERE collection = $1 AND doc_id = $2`, [collection, docId]);
     const existing = rows[0] ? rows[0].data : {};
     let patch = req.body || {};
     if (collection === 'staff') {
       if (patch.username && !(await checkUsernameFree(patch.username, docId))) return res.status(409).json({ error: 'That username is already taken' });
-      patch = await prepareWriteData(collection, patch, existing);
+      patch = await prepareWriteData(collection, patch, existing, req.auth);
     }
     const merged = { ...existing, ...patch };
     await query(
@@ -219,6 +217,7 @@ app.patch('/api/db/:collection/:docId', async (req, res) => {
     );
     res.json({ id: docId, data: sanitize(collection, merged) });
   } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
     console.error(e);
     res.status(500).json({ error: 'Server error' });
   }
