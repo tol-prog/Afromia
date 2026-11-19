@@ -628,9 +628,8 @@ const I18N = {
     'col.notes': 'Yaadannoo',
     'col.payee': 'Kaffalamaa',
     'col.name': 'Maqaa',
-    'col.id': 'ID',
-    'col.medical': 'Fayyaa',
-    'col.police': 'Poolisii',
+    'col.sn': 'Lak.',
+    'col.id': 'Fayda',
     'col.coc': 'COC',
     'col.module': 'Mojuulii',
     'col.score': 'Qabxii',
@@ -660,15 +659,18 @@ const I18N = {
     'dash.noCurrentBatchTitle': "Baachiin Hojii irra Jiru Hin Jiru",
     'dash.noCurrentBatchDesc': "Ammaan kana baachiin hojii irra jiru hin jiru — gad mirga 'Baachii' jalatti haaraa uumi, yookiin baachiiwwan durii gad kana keessatti argamu ilaali.",
     'dash.previousBatchesTitle': 'Baachiiwwan Duraanii',
+    'dash.recentBatchBtn': 'Baachii Ammaa',
+    'dash.previousBatchBtn': 'Baachii Duraanii',
     'dash.needsAttention': 'Xiyyeeffannoo Barbaada',
     'dash.needsAttentionSub': "Leenjifamtoota hojii irra jiran kan sanadni isaanii hin xumuramne yookiin qormaata COC kufan.",
     'dash.fullyDocReady': 'sanada {ready} / {total} guutummaatti qophaa’e',
     'dash.nothingNeedsAttention': 'Amma xiyyeeffannoo kan barbaadu hin jiru.',
     'dash.noBatchesYet': 'Hanga ammaatti baachiin hin jiru.',
     'cohortStats.trainees': 'Leenjifamtoota',
-    'cohortStats.paidFull': 'Guutummaatti Kaffalameera',
-    'cohortStats.partial': 'Gartokkoon Kaffalameera',
-    'cohortStats.notPaid': 'Hin Kaffalamne',
+    'cohortStats.paidFull': 'Guutummaatti Kan Kaffale',
+    'cohortStats.partial': 'Gartokkoon kan kaffale',
+    'cohortStats.notPaid': 'Kan hin Kaffalle',
+    'cohortStats.countPrefix': 'Barataa',
     'cohortStats.docsCleared': 'Sanadni Guutummaatti Xumurameera',
     'cohortStats.cocPassed': 'COC Darbe',
     'trainees.title': 'Leenjifamtoota',
@@ -686,7 +688,7 @@ const I18N = {
     'form.cityZone': 'Magaalaa / Zoonii',
     'form.woredaKebele': 'Aanaa / Ganda',
     'form.educationLevel': 'Sadarkaa Barnootaa',
-    'form.labourId': 'Lakkoofsa ID Hojjetaa',
+    'form.labourId': 'Lakkoofsa LMIS Barataa',
     'form.passportNo': 'Lakkoofsa Paaspoortii',
     'form.branch': 'Damee',
     'form.cohort': 'Baachii',
@@ -694,12 +696,11 @@ const I18N = {
     'form.intakeDate': 'Guyyaa Galmee',
     'form.feeAmountEtb': 'Hanga Kaffaltii (ETB)',
     'form.feeHint': 'Sadarkaa kaffaltii Qindaa’ina keessatti jiru fudhata — yoo barbaachise leenjifamaa tokkoon tokkoon isaaniif jijjiiri.',
+    'form.feeSetByAdmin': "Administireetarri qofti kana jijjiiruu danda'a.",
     'section.firstPayment': 'Kaffaltii Jalqabaa',
-    'hint.firstPaymentOptional': "Yoo kaffaltiin ammaa hin jirre 0 dhiisi — kaffaltii boodarra fuula leenjifamaa irraa dabalchuun ni danda'ama.",
+    'hint.firstPaymentOptional': "Yoo kaffaltiin ammaa hin jirre 0 kaa'i — kaffaltii boodarra fuula leenjifamaa irratti dabaluun ni danda'ama.",
     'hint.remainingAfterThisPayment': 'Kaffaltii: {fee} · Ammaan kana kaffalaa jiru: {paying} · Hafe: {remaining}',
-    'form.idKebeleCard': 'ID / Waraqaa Ganda',
-    'form.medicalClearance': 'Ragaa Fayyaa',
-    'form.policeClearance': 'Ragaa Poolisii',
+    'form.idKebeleCard': 'Fayda',
     'form.notes': 'Yaadannoo',
     'trainee.editTitle': 'Leenjifamaa Gulaali',
     'trainee.enrollTitle': 'Leenjifamaa Galmeessi',
@@ -725,14 +726,14 @@ const I18N = {
     'trainee.back': 'Duubatti',
     'info.personal': 'Odeeffannoo Dhuunfaa',
     'info.readiness': 'Qophaa’ina',
-    'info.labourIdPassport': 'Lakkoofsa ID Hojjetaa / Paaspoortii',
+    'info.labourIdPassport': 'Lakkoofsa LMIS Barataa / Paaspoortii',
     'info.cocStatus': 'Haala COC',
     'info.examWord': 'qormaata',
     'dorm.title': 'Iddoo Bultii',
     'dorm.bedWord': 'siree',
     'dorm.checkedIn': 'kan seene guyyaa',
     'dorm.notAssigned': "Kutaa bultii tokkoof hin ramadamne.",
-    'pay.paidInFull': 'Guutummaatti Kaffalameera',
+    'pay.paidInFull': 'Guutummaatti Kan Kaffale',
     'pay.partial': 'Gartokko',
     'pay.noFeeSet': "Kaffaltiin hin murtaa'in",
     'pay.notPaid': 'Hin Kaffalamne',
@@ -748,7 +749,8 @@ const I18N = {
     'empty.noPaymentsYet': "Hanga ammaatti kaffaltiin hin galmoofne.",
     'modal.logPaymentTitle': 'Kaffaltii Galmeessi — {name}',
     'hint.feePaidBalance': 'Kaffaltii {fee} · hanga ammaa kaffalame {paid} · hafe {balance}',
-    'form.amountReceived': 'Hanga Argame (ETB)',
+    'hint.feePaidBalanceAfter': 'Kaffaltii {fee} · kaffaltii kana booda kaffalame {paid} · hafe {balance}',
+    'form.amountReceived': 'Hanga Kaffalame (ETB)',
     'form.method': 'Mala',
     'form.receiptReference': 'Lakkoofsa Ragaa Kaffaltii',
     'submit.logPayment': 'Kaffaltii Galmeessi',
@@ -870,7 +872,7 @@ const I18N = {
     'perm.dormitory.label': 'Iddoo Bultii',
     'perm.dormitory.desc': "Kutaa bultii ida'uu fi gulaaluu",
     'perm.finance.label': 'Faayinaansii',
-    'perm.finance.desc': "Galii, baasii, meeshaa mana nyaataa, baasii ji'aa fi sadarkaalee",
+    'perm.finance.desc': "Baasii galmeessuu (meeshaa mana nyaataa dabalatee)",
     'perm.curriculum.label': 'Kaarikulamii',
     'perm.curriculum.desc': "Mojuulii leenjii ida'uu fi gulaaluu",
     'perm.branches.label': 'Damee',
@@ -1201,9 +1203,8 @@ const I18N = {
     'col.notes': 'Notes',
     'col.payee': 'Payee',
     'col.name': 'Name',
-    'col.id': 'ID',
-    'col.medical': 'Medical',
-    'col.police': 'Police',
+    'col.sn': 'S/N',
+    'col.id': 'Fayda',
     'col.coc': 'CoC',
     'col.module': 'Module',
     'col.score': 'Score',
@@ -1233,6 +1234,8 @@ const I18N = {
     'dash.noCurrentBatchTitle': 'No active batch right now',
     'dash.noCurrentBatchDesc': "There's no active batch at the moment — start a new one under \"Batches\", or see past batches listed below.",
     'dash.previousBatchesTitle': 'Previous batches',
+    'dash.recentBatchBtn': 'Recent batch',
+    'dash.previousBatchBtn': 'Previous batch',
     'dash.needsAttention': 'Needs attention',
     'dash.needsAttentionSub': 'Active trainees missing a cleared document or with a failed CoC attempt.',
     'dash.fullyDocReady': '{ready} / {total} fully document-ready',
@@ -1242,6 +1245,7 @@ const I18N = {
     'cohortStats.paidFull': 'Paid in full',
     'cohortStats.partial': 'Partially paid',
     'cohortStats.notPaid': 'Not paid',
+    'cohortStats.countPrefix': 'Trainee',
     'cohortStats.docsCleared': 'Docs fully cleared',
     'cohortStats.cocPassed': 'CoC passed',
     'trainees.title': 'Trainees',
@@ -1259,7 +1263,7 @@ const I18N = {
     'form.cityZone': 'City / Zone',
     'form.woredaKebele': 'Woreda / Kebele',
     'form.educationLevel': 'Education level',
-    'form.labourId': 'Labour ID number',
+    'form.labourId': 'Student LMIS number',
     'form.passportNo': 'Passport No.',
     'form.branch': 'Branch',
     'form.cohort': 'Cohort',
@@ -1267,12 +1271,11 @@ const I18N = {
     'form.intakeDate': 'Intake date',
     'form.feeAmountEtb': 'Fee amount (ETB)',
     'form.feeHint': 'Defaults to the tuition rate in Settings — override per trainee if needed.',
+    'form.feeSetByAdmin': 'Only an administrator can change this.',
     'section.firstPayment': 'First Payment',
     'hint.firstPaymentOptional': 'Leave at 0 if no payment is being collected right now — you can log one later from the trainee\'s page.',
     'hint.remainingAfterThisPayment': 'Fee: {fee} · Paying now: {paying} · Remaining: {remaining}',
-    'form.idKebeleCard': 'ID / kebele card',
-    'form.medicalClearance': 'Medical clearance',
-    'form.policeClearance': 'Police clearance',
+    'form.idKebeleCard': 'Fayda',
     'form.notes': 'Notes',
     'trainee.editTitle': 'Edit trainee',
     'trainee.enrollTitle': 'Enroll trainee',
@@ -1298,7 +1301,7 @@ const I18N = {
     'trainee.back': 'Back',
     'info.personal': 'Personal',
     'info.readiness': 'Readiness',
-    'info.labourIdPassport': 'Labour ID / Passport',
+    'info.labourIdPassport': 'Student LMIS number / Passport',
     'info.cocStatus': 'CoC status',
     'info.examWord': 'exam',
     'dorm.title': 'Dormitory',
@@ -1321,7 +1324,8 @@ const I18N = {
     'empty.noPaymentsYet': 'No payments logged yet.',
     'modal.logPaymentTitle': 'Log payment — {name}',
     'hint.feePaidBalance': 'Fee {fee} · paid so far {paid} · balance {balance}',
-    'form.amountReceived': 'Amount received (ETB)',
+    'hint.feePaidBalanceAfter': 'Fee {fee} · paid after this payment {paid} · remaining {balance}',
+    'form.amountReceived': 'Amount paid (ETB)',
     'form.method': 'Method',
     'form.receiptReference': 'Receipt reference',
     'submit.logPayment': 'Log payment',
@@ -1443,7 +1447,7 @@ const I18N = {
     'perm.dormitory.label': 'Dormitory',
     'perm.dormitory.desc': 'Add & edit dormitory rooms',
     'perm.finance.label': 'Finance',
-    'perm.finance.desc': 'Revenue, expenses, kitchen items, overhead & rates',
+    'perm.finance.desc': 'Log expenses (including kitchen items)',
     'perm.curriculum.label': 'Curriculum',
     'perm.curriculum.desc': 'Add & edit training modules',
     'perm.branches.label': 'Branches',
@@ -1861,7 +1865,6 @@ function isAdmin(){ return state.currentStaff && state.currentStaff.role === 'ad
 const PERMISSION_KEYS = [
   ['trainees','perm.trainees.label','perm.trainees.desc'],
   ['cohorts','perm.cohorts.label','perm.cohorts.desc'],
-  ['dormitory','perm.dormitory.label','perm.dormitory.desc'],
   ['finance','perm.finance.label','perm.finance.desc'],
   ['curriculum','perm.curriculum.label','perm.curriculum.desc'],
   ['branches','perm.branches.label','perm.branches.desc'],
@@ -1897,7 +1900,7 @@ function scopedCohorts(){ const ids = scopeBranchIds(); return state.cohorts.fil
 function scopedDormRooms(){ const ids = scopeBranchIds(); return state.dormRooms.filter(r=>ids.includes(r.branchId)); }
 function traineesOfCohort(cid){ return state.trainees.filter(t=>t.cohortId===cid); }
 
-const DOC_LABELS = {idStatus:'ID / Kebele card', medicalStatus:'Medical clearance', policeStatus:'Police clearance'};
+const DOC_LABELS = {idStatus:'Fayda'};
 const DOC_STATES = ['pending','submitted','cleared'];
 const COC_STATES = ['not-started','scheduled','passed','failed'];
 const TRAINEE_STATES = ['active','graduated','withdrawn','deployment-ready'];
@@ -1956,10 +1959,15 @@ function render(){
 }
 
 const FINANCE_NAV_ITEMS = [['finance-overview','nav.finance.overview'],['finance-revenue','nav.finance.revenue'],['finance-expense','nav.finance.expense'],['finance-kitchen','nav.finance.kitchen'],['finance-overhead','nav.finance.overhead'],['finance-assumptions','nav.finance.assumptions']];
+// Non-admin staff only ever enter expenses (kitchen items are just a
+// category inside that same form — see EXPENSE_CATEGORIES) and never see
+// the cross-branch Overview or manually add Revenue, since revenue is
+// always auto-logged from a trainee's tuition payment.
+const STAFF_FINANCE_NAV_ITEMS = [['finance-expense','nav.finance.expense']];
 function navItemsFor(staff){
   if(staff.role==='admin'){
     return [
-      {sec:'nav.sec.operate', items:[['dashboard','nav.dashboard'],['trainees','nav.trainees'],['cohorts','nav.cohorts'],['dormitory','nav.dormitory']]},
+      {sec:'nav.sec.operate', items:[['dashboard','nav.dashboard'],['trainees','nav.trainees'],['cohorts','nav.cohorts']]},
       {sec:'nav.sec.finance', items:FINANCE_NAV_ITEMS},
       {sec:'nav.sec.manage', items:[['curriculum','nav.curriculum'],['staff','nav.staff'],['branches','nav.branches'],['reports','nav.reports']]},
     ];
@@ -1973,9 +1981,8 @@ function navItemsFor(staff){
   const opItems = [['dashboard','nav.dashboard']];
   if(perms.trainees) opItems.push(['trainees','nav.trainees']);
   if(perms.cohorts) opItems.push(['cohorts','nav.cohorts']);
-  if(perms.dormitory) opItems.push(['dormitory','nav.dormitory']);
   const sections = [{sec:'nav.sec.operate', items:opItems}];
-  if(perms.finance) sections.push({sec:'nav.sec.finance', items:FINANCE_NAV_ITEMS});
+  if(perms.finance) sections.push({sec:'nav.sec.finance', items:STAFF_FINANCE_NAV_ITEMS});
   const manageItems = [];
   if(perms.curriculum) manageItems.push(['curriculum','nav.curriculum']);
   if(perms.staff) manageItems.push(['staff','nav.staff']);
@@ -2227,39 +2234,81 @@ function bindBranchSwitcher(){
 }
 
 // Non-admin dashboard: jump straight to the branch's current (active) batch
-// with its roster, an "Add new student" button right at the top, and older
-// batches listed below as a clickable list -- rather than the cross-branch
-// stat/finance overview admins see. If more than one batch is active, the
-// most recently started one is "current" (state.cohorts is already sorted
-// newest-first); the rest, active or not, are "previous batches" below.
+// with its roster shown in the same column layout as the COC submission
+// spreadsheet (see cocStyleRosterTable) plus a payment column and a quick
+// edit/pay action per row -- COC status and attendance stay off this page
+// entirely (that happens once, from the cohort detail page, when names are
+// submitted). Three buttons up top -- add a batch, jump to the recent
+// batch, jump to the single most recent previous batch -- replace the old
+// full "previous batches" list for faster day-to-day navigation. If more
+// than one batch is active, the most recently started one is "current"
+// (state.cohorts is already sorted newest-first).
 function renderStaffDashboard(main){
   const cohorts = scopedCohorts();
   const current = cohorts.find(c=>c.status==='active') || null;
   const others = current ? cohorts.filter(c=>c.id!==current.id) : cohorts;
+  const previous = others[0] || null;
   const roster = current ? traineesOfCohort(current.id) : [];
   const canAddTrainee = isAdmin()||hasPerm('trainees');
+  const canAddBatch = isAdmin()||hasPerm('cohorts');
   main.innerHTML =
     '<div class="topbar"><div><h1>'+t('dash.title')+'</h1><div class="desc">'+esc(branchName(state.currentStaff.branchId))+'</div></div>' +
-      (canAddTrainee ? '<div class="topbar-actions"><button class="btn btn-primary" id="btn-add-student-dash">'+t('trainees.enrollBtn')+'</button></div>' : '') +
+      '<div class="topbar-actions">' +
+        (canAddBatch?'<button class="btn" id="btn-add-batch-dash">'+t('btn.newBatch')+'</button>':'') +
+        (current?'<button class="btn btn-ghost" id="btn-recent-batch-dash">'+t('dash.recentBatchBtn')+'</button>':'') +
+        (previous?'<button class="btn btn-ghost" data-open-cohort="'+previous.id+'">'+t('dash.previousBatchBtn')+'</button>':'') +
+      '</div>' +
     '</div>' +
     (current ?
       '<div class="card">' +
         '<div class="card-head"><div><h2>'+esc(current.code)+'</h2><div class="sub">'+t('dash.inTrainingSub')+'</div></div>' +
-          '<button class="btn btn-sm btn-ghost" data-open-cohort="'+current.id+'">'+t('dash.viewBatch')+'</button></div>' +
+          (canAddTrainee?'<button class="btn btn-sm btn-primary" id="btn-add-student-dash">'+t('trainees.enrollBtn')+'</button>':'') +
+        '</div>' +
         cohortStatsHtml(roster) +
-        (roster.length ? traineesTable(roster) : '<div class="empty-state">'+t('dash.noTraineesInBatch')+'</div>') +
+        (roster.length ? cocStyleRosterTable(roster) : '<div class="empty-state">'+t('dash.noTraineesInBatch')+'</div>') +
       '</div>'
-    : '<div class="card"><div class="card-head"><h2>'+t('dash.noCurrentBatchTitle')+'</h2></div><div class="empty-state">'+t('dash.noCurrentBatchDesc')+'</div></div>') +
-    (others.length ?
-      '<div class="card">' +
-        '<div class="card-head"><h2>'+t('dash.previousBatchesTitle')+'</h2></div>' +
-        cohortsTable(others, {hideRevenue:true}) +
-      '</div>'
-    : '');
+    : '<div class="card"><div class="card-head"><h2>'+t('dash.noCurrentBatchTitle')+'</h2></div><div class="empty-state">'+t('dash.noCurrentBatchDesc')+'</div></div>');
   document.querySelectorAll('[data-open-cohort]').forEach(el=>el.addEventListener('click', ()=>{ state.cohortDetail = el.dataset.openCohort; render(); }));
   document.querySelectorAll('[data-open-trainee]').forEach(el=>el.addEventListener('click', ()=>{ state.traineeDetail = el.dataset.openTrainee; render(); }));
+  document.querySelectorAll('[data-quick-pay]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); const tr=traineeById(el.dataset.quickPay); if(tr) openLogPaymentForm(tr); }));
+  document.querySelectorAll('[data-quick-edit]').forEach(el=>el.addEventListener('click', e=>{ e.stopPropagation(); const tr=traineeById(el.dataset.quickEdit); if(tr) openTraineeForm(tr); }));
   const addBtn = document.getElementById('btn-add-student-dash');
   if(addBtn) addBtn.addEventListener('click', ()=>openTraineeForm(null, current));
+  const addBatchBtn = document.getElementById('btn-add-batch-dash');
+  if(addBatchBtn) addBatchBtn.addEventListener('click', ()=>openCohortForm());
+  const recentBtn = document.getElementById('btn-recent-batch-dash');
+  if(recentBtn) recentBtn.addEventListener('click', ()=>{ state.cohortDetail = current.id; render(); });
+}
+
+// Mirrors the column layout of the official COC submission spreadsheet
+// (server/documents/cocExcelReport.js) -- S/N, Full Name, Sex, Age,
+// Education level, Region/City-Zone/Woreda-Kebele, LMIS number, Passport
+// No., Phone -- plus a Payment column and a per-row Edit/+Payment action,
+// which that spreadsheet doesn't have. No COC-status or attendance column:
+// those only matter once, at COC submission time, from the cohort detail
+// page, not on this everyday roster view.
+function cocStyleRosterTable(trainees){
+  return '<div class="table-wrap"><table class="tbl"><thead><tr>' +
+    '<th>'+t('col.sn')+'</th><th>'+t('col.name')+'</th><th>'+t('form.gender')+'</th><th>'+t('form.age')+'</th>' +
+    '<th>'+t('form.educationLevel')+'</th><th>'+t('form.regionOrigin')+'</th><th>'+t('form.cityZone')+'</th><th>'+t('form.woredaKebele')+'</th>' +
+    '<th>'+t('form.labourId')+'</th><th>'+t('form.passportNo')+'</th><th>'+t('form.phone')+'</th><th>'+t('col.payment')+'</th><th></th>' +
+    '</tr></thead><tbody>' +
+    trainees.map((tr,i) => '<tr>' +
+      '<td class="num">'+(i+1)+'</td>' +
+      '<td class="row-name clickable" data-open-trainee="'+tr.id+'">'+esc(tr.name)+'</td>' +
+      '<td>'+esc(tr.gender||'—')+'</td>' +
+      '<td class="num">'+(tr.age!=null?tr.age:'—')+'</td>' +
+      '<td>'+esc(tr.educationLevel!=null&&tr.educationLevel!==''?tr.educationLevel:'—')+'</td>' +
+      '<td>'+esc(tr.region||'—')+'</td>' +
+      '<td>'+esc(tr.cityZone||'—')+'</td>' +
+      '<td>'+esc(tr.woredaKebele||'—')+'</td>' +
+      '<td>'+esc(tr.labourId||'—')+'</td>' +
+      '<td>'+esc(tr.passportNo||'—')+'</td>' +
+      '<td>'+esc(tr.phone||'—')+'</td>' +
+      '<td>'+paymentCellHtml(tr)+'</td>' +
+      '<td style="white-space:nowrap;"><button class="btn btn-sm btn-ghost" data-quick-pay="'+tr.id+'" title="'+esc(t('btn.logPayment'))+'">+</button> <button class="btn btn-sm btn-ghost" data-quick-edit="'+tr.id+'">'+t('trainee.edit')+'</button></td>' +
+    '</tr>').join('') +
+    '</tbody></table></div>';
 }
 
 function renderDashboard(main){
@@ -2270,14 +2319,11 @@ function renderDashboard(main){
   if(!isAdmin()){ renderStaffDashboard(main); return; }
   const trainees = scopedTrainees();
   const cohorts = scopedCohorts();
-  const rooms = scopedDormRooms();
   const active = trainees.filter(t=>t.status==='active'||t.status==='deployment-ready');
   const cocCounts = {passed:0, scheduled:0, failed:0, 'not-started':0};
   trainees.forEach(t=> cocCounts[t.cocStatus||'not-started']++ );
-  const occupied = trainees.filter(t=>t.dormRoomId).length;
-  const capacity = rooms.reduce((s,r)=>s+(Number(r.capacity)||0),0);
-  const docsReady = trainees.filter(t=> t.idStatus==='cleared' && t.medicalStatus==='cleared' && t.policeStatus==='cleared').length;
-  const needsAttention = trainees.filter(t => (t.status==='active') && (t.idStatus!=='cleared' || t.medicalStatus!=='cleared' || t.policeStatus!=='cleared' || t.cocStatus==='failed')).slice(0,8);
+  const docsReady = trainees.filter(t=> t.idStatus==='cleared').length;
+  const needsAttention = trainees.filter(t => (t.status==='active') && (t.idStatus!=='cleared' || t.cocStatus==='failed')).slice(0,8);
 
   const financeTiles = isAdmin() ? (()=>{
     const hist = historicalTotals(); const logRev = loggedRevenueTotal(); const logExp = loggedExpenseTotal();
@@ -2291,7 +2337,6 @@ function renderDashboard(main){
       statTile(t('dash.activeTrainees'), active.length, t('dash.totalOnRoll',{n:trainees.length})) +
       statTile(t('dash.activeBatches'), cohorts.filter(c=>c.status==='active').length, t('dash.totalBatches',{n:cohorts.length})) +
       statTile(t('dash.cocPassed'), cocCounts.passed, t('dash.examsScheduled',{n:cocCounts.scheduled})) +
-      statTile(t('dash.dormOccupancy'), capacity? Math.round(occupied/capacity*100)+'%' : '—', t('dash.bedsFilled',{occupied:occupied,capacity:capacity})) +
       financeTiles +
     '</div>' +
     '<div class="card">' +
@@ -2341,23 +2386,24 @@ function cohortStatsHtml(roster){
   const paidFull = roster.filter(t=>traineeBalance(t).status==='Paid in full').length;
   const partial = roster.filter(t=>traineeBalance(t).status==='Partially paid').length;
   const notPaid = n - paidFull - partial;
-  const docsReady = roster.filter(t=>t.idStatus==='cleared' && t.medicalStatus==='cleared' && t.policeStatus==='cleared').length;
+  const docsReady = roster.filter(t=>t.idStatus==='cleared').length;
   const cocPassed = roster.filter(t=>t.cocStatus==='passed').length;
   const pct = (x)=> n? Math.round(x/n*100)+'%' : '';
+  const withCount = (x)=> t('cohortStats.countPrefix')+' '+x;
   return '<div class="grid grid-stats" style="margin-bottom:14px;">' +
     statTile(t('cohortStats.trainees'), n, '') +
-    statTile(t('cohortStats.paidFull'), paidFull, pct(paidFull)) +
-    statTile(t('cohortStats.partial'), partial, pct(partial)) +
-    statTile(t('cohortStats.notPaid'), notPaid, pct(notPaid)) +
+    statTile(t('cohortStats.paidFull'), withCount(paidFull), pct(paidFull)) +
+    statTile(t('cohortStats.partial'), withCount(partial), pct(partial)) +
+    statTile(t('cohortStats.notPaid'), withCount(notPaid), pct(notPaid)) +
     statTile(t('cohortStats.docsCleared'), docsReady, pct(docsReady)) +
     statTile(t('cohortStats.cocPassed'), cocPassed, pct(cocPassed)) +
   '</div>';
 }
 
 function attentionTable(list){
-  return '<div class="table-wrap"><table class="tbl"><thead><tr><th>'+t('trainees.title')+'</th><th>'+t('col.branch')+'</th><th>'+t('col.id')+'</th><th>'+t('col.medical')+'</th><th>'+t('col.police')+'</th><th>'+t('col.coc')+'</th></tr></thead><tbody>' +
+  return '<div class="table-wrap"><table class="tbl"><thead><tr><th>'+t('trainees.title')+'</th><th>'+t('col.branch')+'</th><th>'+t('col.id')+'</th><th>'+t('col.coc')+'</th></tr></thead><tbody>' +
     list.map(t => '<tr class="clickable" data-open-trainee="'+t.id+'"><td class="row-name">'+esc(t.name)+'</td><td>'+esc(branchName(t.branchId))+'</td>' +
-      '<td>'+pillForDoc(t.idStatus)+'</td><td>'+pillForDoc(t.medicalStatus)+'</td><td>'+pillForDoc(t.policeStatus)+'</td><td>'+pillForCoc(t.cocStatus)+'</td></tr>').join('') +
+      '<td>'+pillForDoc(t.idStatus)+'</td><td>'+pillForCoc(t.cocStatus)+'</td></tr>').join('') +
     '</tbody></table></div>';
 }
 
@@ -2417,10 +2463,9 @@ function paymentCellHtml(tr){
 }
 
 function traineesTable(trainees){
-  return '<div class="table-wrap"><table class="tbl"><thead><tr><th>'+t('col.name')+'</th><th>'+t('col.branch')+'</th><th>'+t('col.batch')+'</th><th>'+t('col.status')+'</th><th>'+t('col.payment')+'</th><th>'+t('col.coc')+'</th><th>'+t('col.dorm')+'</th></tr></thead><tbody>' +
+  return '<div class="table-wrap"><table class="tbl"><thead><tr><th>'+t('col.name')+'</th><th>'+t('col.branch')+'</th><th>'+t('col.batch')+'</th><th>'+t('col.status')+'</th><th>'+t('col.payment')+'</th><th>'+t('col.coc')+'</th></tr></thead><tbody>' +
     trainees.map(tr => {
       const c = cohortById(tr.cohortId);
-      const room = state.dormRooms.find(r=>r.id===tr.dormRoomId);
       return '<tr class="clickable" data-open-trainee="'+tr.id+'">' +
         '<td class="row-name">'+esc(tr.name)+(tr._offlinePending?' <span class="pill pill-warning" title="'+esc(t('trainees.pendingSyncTitle'))+'">'+t('trainees.pendingSync')+'</span>':'')+'<div class="row-sub">'+esc(tr.phone||'')+'</div></td>' +
         '<td>'+esc(branchName(tr.branchId))+'</td>' +
@@ -2428,7 +2473,6 @@ function traineesTable(trainees){
         '<td>'+pillForStatus(tr.status)+'</td>' +
         '<td>'+paymentCellHtml(tr)+'</td>' +
         '<td>'+pillForCoc(tr.cocStatus)+'</td>' +
-        '<td>'+(room? esc(room.roomName)+(tr.bedNumber?' · '+t('dorm.bedWord')+' '+esc(tr.bedNumber):'') : '<span class="muted">'+t('trainees.unassigned')+'</span>')+'</td>' +
       '</tr>';
     }).join('') + '</tbody></table></div>';
 }
@@ -2466,12 +2510,15 @@ function openTraineeForm(existing, presetCohort){
         '<div class="field"><label>'+t('form.cohort')+'</label><select id="f-cohort"><option value="">'+t('form.unassigned')+'</option>'+state.cohorts.map(c=>'<option value="'+c.id+'"'+(defaultCohortId===c.id?' selected':'')+'>'+esc(c.code)+' ('+esc(branchName(c.branchId))+')</option>').join('')+'</select></div>' +
       '</div>' +
       '<div class="field-row">' +
-        '<div class="field"><label>'+t('form.intakeDate')+'</label>'+ecDateFieldHtml('f-intake', existing?.intakeDate||todayStr())+'</div>' +
+        '<div class="field"><label>'+t('form.intakeDate')+'</label>'+
+          (existing ? ecDateFieldHtml('f-intake', existing.intakeDate||todayStr()) :
+            ('<div style="padding:7px 0;font-weight:600;">'+fmtDate(todayStr())+'</div><input type="hidden" id="f-intake" value="'+todayStr()+'">')) +
+        '</div>' +
         '<div class="field"><label>'+t('col.status')+'</label><select id="f-status">'+TRAINEE_STATES.map(s=>'<option value="'+s+'"'+(existing?.status===s?' selected':'')+'>'+esc(stateLabel(s))+'</option>').join('')+'</select></div>' +
       '</div>' +
       '<div class="field-row">' +
-        '<div class="field"><label>'+t('form.feeAmountEtb')+'</label><input type="number" id="f-fee" value="'+esc(existing?(existing.feeAmount!=null?existing.feeAmount:''):defaultTuitionFee())+'"></div>' +
-        '<div class="field"><div class="hint" style="margin-top:22px;">'+t('form.feeHint')+'</div></div>' +
+        '<div class="field"><label>'+t('form.feeAmountEtb')+'</label><input type="number" id="f-fee"'+(isAdmin()?'':' disabled')+' value="'+esc(existing?(existing.feeAmount!=null?existing.feeAmount:''):defaultTuitionFee())+'"></div>' +
+        '<div class="field"><div class="hint" style="margin-top:22px;">'+(isAdmin()?t('form.feeHint'):t('form.feeSetByAdmin'))+'</div></div>' +
       '</div>' +
       (!existing ?
         '<div class="field-row" style="margin-top:4px;padding-top:12px;border-top:1px solid var(--border);">' +
@@ -2489,10 +2536,6 @@ function openTraineeForm(existing, presetCohort){
       : '') +
       '<div class="field-row">' +
         '<div class="field"><label>'+t('form.idKebeleCard')+'</label><select id="f-id">'+DOC_STATES.map(s=>'<option value="'+s+'"'+(existing?.idStatus===s?' selected':'')+'>'+esc(stateLabel(s))+'</option>').join('')+'</select></div>' +
-        '<div class="field"><label>'+t('form.medicalClearance')+'</label><select id="f-medical">'+DOC_STATES.map(s=>'<option value="'+s+'"'+(existing?.medicalStatus===s?' selected':'')+'>'+esc(stateLabel(s))+'</option>').join('')+'</select></div>' +
-      '</div>' +
-      '<div class="field-row">' +
-        '<div class="field"><label>'+t('form.policeClearance')+'</label><select id="f-police">'+DOC_STATES.map(s=>'<option value="'+s+'"'+(existing?.policeStatus===s?' selected':'')+'>'+esc(stateLabel(s))+'</option>').join('')+'</select></div>' +
         '<div class="field"><label>'+t('form.notes')+'</label><input id="f-notes" value="'+esc(existing?.notes||'')+'"></div>' +
       '</div>',
     submitLabel: existing ? t('trainee.saveChanges') : t('trainee.enrollSubmit'),
@@ -2509,7 +2552,6 @@ function openTraineeForm(existing, presetCohort){
         passportNo:document.getElementById('f-passportno').value.trim(),
         cohortId:document.getElementById('f-cohort').value||null, intakeDate:document.getElementById('f-intake').value,
         status:document.getElementById('f-status').value, idStatus:document.getElementById('f-id').value,
-        medicalStatus:document.getElementById('f-medical').value, policeStatus:document.getElementById('f-police').value,
         notes:document.getElementById('f-notes').value.trim(),
         feeAmount: document.getElementById('f-fee').value===''? null : (Number(document.getElementById('f-fee').value)||0),
       };
@@ -2583,7 +2625,7 @@ function renderTraineeDetail(main){
       '<button class="btn btn-ghost btn-sm" id="back-btn">← '+t('trainee.back')+'</button>' +
       '<h1 style="margin-top:8px;">'+esc(trainee.name)+'</h1>' +
       '<div class="desc">'+esc(branchName(trainee.branchId))+' · '+esc(c?c.code:t('trainee.noBatch'))+' · '+pillForStatus(trainee.status)+'</div></div>' +
-      ((isAdmin()||hasPerm('trainees')) ? '<div class="topbar-actions"><button class="btn" id="btn-edit-trainee">'+t('trainee.edit')+'</button><button class="btn" id="btn-coc">'+t('trainee.updateCoc')+'</button><button class="btn" id="btn-dorm">'+t('trainee.assignDorm')+'</button></div>' : '') +
+      ((isAdmin()||hasPerm('trainees')) ? '<div class="topbar-actions"><button class="btn" id="btn-edit-trainee">'+t('trainee.edit')+'</button><button class="btn" id="btn-coc">'+t('trainee.updateCoc')+'</button></div>' : '') +
     '</div>' +
     '<div class="tabs">' +
       [['overview',t('trainee.tabOverview')],['assessments',t('trainee.tabAssessments')],['attendance',t('trainee.tabAttendance')]].map(([key,label])=>{
@@ -2603,12 +2645,9 @@ function renderTraineeDetail(main){
     body.innerHTML =
       '<div class="grid" style="grid-template-columns:1fr 1fr;">' +
         infoCard(t('info.personal'), [[t('form.phone'),trainee.phone||'—'],[t('form.gender'),trainee.gender||'—'],[t('form.age'),trainee.age!=null?trainee.age:'—'],[t('form.regionOrigin'),trainee.region||'—'],[t('form.cityZone'),trainee.cityZone||'—'],[t('form.woredaKebele'),trainee.woredaKebele||'—'],[t('form.educationLevel'),trainee.educationLevel!=null&&trainee.educationLevel!==''?trainee.educationLevel:'—'],[t('info.labourIdPassport'),[trainee.labourId,trainee.passportNo].filter(Boolean).join(' · ')||'—'],[t('form.intakeDate'),fmtDate(trainee.intakeDate)]]) +
-        infoCard(t('info.readiness'), [[t('form.idKebeleCard'),pillForDoc(trainee.idStatus)],[t('form.medicalClearance'),pillForDoc(trainee.medicalStatus)],[t('form.policeClearance'),pillForDoc(trainee.policeStatus)],[t('info.cocStatus'),pillForCoc(trainee.cocStatus)+(trainee.cocExamDate?'  ·  '+t('info.examWord')+' '+fmtDate(trainee.cocExamDate):'')+(trainee.cocCertNumber?'  ·  #'+esc(trainee.cocCertNumber):'')]]) +
+        infoCard(t('info.readiness'), [[t('form.idKebeleCard'),pillForDoc(trainee.idStatus)],[t('info.cocStatus'),pillForCoc(trainee.cocStatus)+(trainee.cocExamDate?'  ·  '+t('info.examWord')+' '+fmtDate(trainee.cocExamDate):'')+(trainee.cocCertNumber?'  ·  #'+esc(trainee.cocCertNumber):'')]]) +
       '</div>' +
       paymentCard(trainee) +
-      '<div class="card"><div class="card-head"><h2>'+t('dorm.title')+'</h2></div>' +
-        (room ? '<div>'+esc(room.roomName)+' · '+t('dorm.bedWord')+' '+esc(trainee.bedNumber||'—')+' · '+t('dorm.checkedIn')+' '+fmtDate(trainee.checkInDate)+'</div>' : '<div class="muted">'+t('dorm.notAssigned')+'</div>') +
-      '</div>' +
       (trainee.notes ? '<div class="card"><div class="card-head"><h2>'+t('col.notes')+'</h2></div><div>'+esc(trainee.notes)+'</div></div>' : '');
     const logPayBtn = document.getElementById('btn-log-payment'); if(logPayBtn) logPayBtn.addEventListener('click', ()=>openLogPaymentForm(trainee));
   } else if(sub==='assessments'){
@@ -2651,7 +2690,7 @@ function openLogPaymentForm(tr){
   openModal({
     title: t('modal.logPaymentTitle',{name:tr.name}),
     bodyHtml:
-      '<div class="hint" style="margin-bottom:8px;">'+t('hint.feePaidBalance',{fee:fmtBirr(b.feeAmt), paid:fmtBirr(b.paid), balance:fmtBirr(b.balance)})+'</div>' +
+      '<div class="hint" id="f-pay-remaining-hint" style="margin-bottom:8px;">'+t('hint.feePaidBalance',{fee:fmtBirr(b.feeAmt), paid:fmtBirr(b.paid), balance:fmtBirr(b.balance)})+'</div>' +
       '<div class="field-row"><div class="field"><label>'+t('form.amountReceived')+'</label><input type="number" id="f-pay-amount" value="'+(b.balance>0?b.balance:'')+'"></div>' +
       '<div class="field"><label>'+t('col.date')+'</label>'+ecDateFieldHtml('f-pay-date', todayStr())+'</div></div>' +
       '<div class="field-row"><div class="field"><label>'+t('form.method')+'</label><select id="f-pay-method">'+PAYMENT_METHODS.map(m=>'<option value="'+m+'">'+esc(paymentMethodLabel(m))+'</option>').join('')+'</select></div>' +
@@ -2694,6 +2733,12 @@ function openLogPaymentForm(tr){
     }
   });
   bindEcDateField('f-pay-date');
+  const payEl = document.getElementById('f-pay-amount'), hintEl = document.getElementById('f-pay-remaining-hint');
+  const syncRemainingHint = () => {
+    const paying = Number(payEl.value)||0;
+    hintEl.textContent = t('hint.feePaidBalanceAfter', {fee:fmtBirr(b.feeAmt), paid:fmtBirr(b.paid+paying), balance:fmtBirr(Math.max(0,b.balance-paying))});
+  };
+  payEl.addEventListener('input', syncRemainingHint);
 }
 
 function openCocForm(trainee){
@@ -3279,11 +3324,21 @@ function openRevenueForm(){
 /* finance — expense log                                                   */
 /* ---------------------------------------------------------------------- */
 
+// Admins see every logged expense; non-admin staff only see entries they
+// themselves recorded (recordedBy === their own staff id) -- they never
+// get the cross-branch Finance Overview, so this is the only expense view
+// they have, and it should only ever show their own inputs.
+function scopedExpenseLog(){
+  if(isAdmin()) return state.expenseLog;
+  const myId = state.currentStaff && state.currentStaff.id;
+  return state.expenseLog.filter(e=>e.recordedBy===myId);
+}
 function renderExpenseLog(main){
+  const rows = scopedExpenseLog();
   main.innerHTML =
-    '<div class="topbar"><div><h1>'+t('nav.finance.expense')+'</h1><div class="desc">'+t('expense.desc',{n:state.expenseLog.length, total:fmtBirr(loggedExpenseTotal())})+'</div></div>' +
+    '<div class="topbar"><div><h1>'+t('nav.finance.expense')+'</h1><div class="desc">'+t('expense.desc',{n:rows.length, total:fmtBirr(sumAmt(rows))})+'</div></div>' +
       '<div class="topbar-actions"><button class="btn btn-primary" id="btn-add-exp">'+t('btn.addExpenseEntry')+'</button></div></div>' +
-    '<div class="card">' + (state.expenseLog.length ? logTable(state.expenseLog, [t('col.date'),t('col.batch'),t('col.category'),t('col.description'),t('col.amount'),t('col.payee'),t('col.notes')], r=>[fmtDate(r.date), r.batchNum||'—', esc(categoryLabel(r.category)), esc(r.description), '<span class="num">'+fmtBirr(r.amount)+'</span>', esc(r.payee), '<span class="row-sub">'+esc(r.notes)+'</span>']) : '<div class="empty-state">'+t('empty.noExpensesLoggedYet')+'</div>') + '</div>';
+    '<div class="card">' + (rows.length ? logTable(rows, [t('col.date'),t('col.batch'),t('col.category'),t('col.description'),t('col.amount'),t('col.payee'),t('col.notes')], r=>[fmtDate(r.date), r.batchNum||'—', esc(categoryLabel(r.category)), esc(r.description), '<span class="num">'+fmtBirr(r.amount)+'</span>', esc(r.payee), '<span class="row-sub">'+esc(r.notes)+'</span>']) : '<div class="empty-state">'+t('empty.noExpensesLoggedYet')+'</div>') + '</div>';
   document.getElementById('btn-add-exp').addEventListener('click', ()=>openExpenseForm());
 }
 function openExpenseForm(){
@@ -3304,7 +3359,8 @@ function openExpenseForm(){
       const batchVal = document.getElementById('f-batch').value;
       await state.db.collection('expenseLog').add({date:document.getElementById('f-date').value, batchNum: batchVal?Number(batchVal):null,
         category:document.getElementById('f-cat').value, description:document.getElementById('f-desc').value.trim(), amount:amt,
-        payee:document.getElementById('f-payee').value.trim(), notes:document.getElementById('f-notes').value.trim()});
+        payee:document.getElementById('f-payee').value.trim(), notes:document.getElementById('f-notes').value.trim(),
+        recordedBy: state.currentStaff.id});
       closeModal(); toast(t('toast.expenseEntryAdded'));
     }
   });
@@ -3443,7 +3499,7 @@ function renderReports(main){
     row.total++;
     if(tr.status==='active'||tr.status==='deployment-ready') row.active++;
     if(tr.cocStatus==='passed') row.cocPassed++;
-    if(tr.idStatus==='cleared'&&tr.medicalStatus==='cleared'&&tr.policeStatus==='cleared') row.docsReady++;
+    if(tr.idStatus==='cleared') row.docsReady++;
     if(tr.paymentStatus==='Paid') row.paid++;
   });
   main.innerHTML =
@@ -3459,11 +3515,11 @@ function renderReports(main){
   bindSpreadsheetReportingCard();
   document.getElementById('btn-open-spreadsheet-reports').addEventListener('click', openSpreadsheetReportingModal);
   document.getElementById('btn-export').addEventListener('click', ()=>{
-    const header = ['Name','Branch','Batch','Status','Payment status','Amount','Payment date','Receipt ref','ID','Medical','Police','CoC status','CoC exam date','Certificate #','Dorm room','Bed','Intake date'];
+    const header = ['Name','Branch','Batch','Status','Payment status','Amount','Payment date','Receipt ref','Fayda','CoC status','CoC exam date','Certificate #','Intake date'];
     const lines = [header.join(',')];
     trainees.forEach(tr=>{
-      const c = cohortById(tr.cohortId); const room = state.dormRooms.find(r=>r.id===tr.dormRoomId);
-      const vals = [tr.name,branchName(tr.branchId),c?c.code:'',tr.status,tr.paymentStatus||'',tr.paymentAmount||'',tr.paymentDate||'',tr.receiptRef||'',tr.idStatus,tr.medicalStatus,tr.policeStatus,tr.cocStatus,tr.cocExamDate||'',tr.cocCertNumber||'',room?room.roomName:'',tr.bedNumber||'',tr.intakeDate||''];
+      const c = cohortById(tr.cohortId);
+      const vals = [tr.name,branchName(tr.branchId),c?c.code:'',tr.status,tr.paymentStatus||'',tr.paymentAmount||'',tr.paymentDate||'',tr.receiptRef||'',tr.idStatus,tr.cocStatus,tr.cocExamDate||'',tr.cocCertNumber||'',tr.intakeDate||''];
       lines.push(vals.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(','));
     });
     const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
