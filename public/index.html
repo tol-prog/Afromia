@@ -740,9 +740,9 @@ const I18N = {
     'card.feeAndPayments': 'Kaffaltii fi Kaffaltiiwwan',
     'btn.logPayment': '+ Kaffaltii Galmeessi',
     'stat.feeAmount': 'Hanga Kaffaltii',
-    'stat.paidSoFar': 'Hanga Ammaa Kaffalame',
+    'stat.paidSoFar': 'Hanga Ammaa Kan Kaffalame',
     'stat.paymentCount': 'Kaffaltii {n}',
-    'stat.balanceRemaining': 'Hafe Kaffalamuu Qabu',
+    'stat.balanceRemaining': 'Kan Hafe',
     'col.method': 'Mala',
     'col.receiptRef': 'Lakk. Ragaa Kaffaltii',
     'col.recordedBy': 'Galmeesse',
@@ -750,7 +750,7 @@ const I18N = {
     'modal.logPaymentTitle': 'Kaffaltii Galmeessi — {name}',
     'hint.feePaidBalance': 'Kaffaltii {fee} · hanga ammaa kaffalame {paid} · hafe {balance}',
     'hint.feePaidBalanceAfter': 'Kaffaltii {fee} · kaffaltii kana booda kaffalame {paid} · hafe {balance}',
-    'form.amountReceived': 'Hanga Kaffalame (ETB)',
+    'form.amountReceived': 'Hanga Kaffaltii (ETB)',
     'form.method': 'Mala',
     'form.receiptReference': 'Lakkoofsa Ragaa Kaffaltii',
     'submit.logPayment': 'Kaffaltii Galmeessi',
@@ -2255,8 +2255,8 @@ function renderStaffDashboard(main){
     '<div class="topbar"><div><h1>'+t('dash.title')+'</h1><div class="desc">'+esc(branchName(state.currentStaff.branchId))+'</div></div>' +
       '<div class="topbar-actions">' +
         (canAddBatch?'<button class="btn" id="btn-add-batch-dash">'+t('btn.newBatch')+'</button>':'') +
-        (current?'<button class="btn btn-ghost" id="btn-recent-batch-dash">'+t('dash.recentBatchBtn')+'</button>':'') +
-        (previous?'<button class="btn btn-ghost" data-open-cohort="'+previous.id+'">'+t('dash.previousBatchBtn')+'</button>':'') +
+        (current?'<button class="btn btn-ghost" id="btn-recent-batch-dash">'+t('dash.recentBatchBtn')+' — '+esc(current.code)+'</button>':'') +
+        (previous?'<button class="btn btn-ghost" data-open-cohort="'+previous.id+'">'+t('dash.previousBatchBtn')+' — '+esc(previous.code)+'</button>':'') +
       '</div>' +
     '</div>' +
     (current ?
@@ -2682,7 +2682,9 @@ function paymentCard(tr){
   '</div>';
 }
 
-const PAYMENT_METHODS = ['Cash','Bank transfer','Mobile money','Other'];
+// Only these two are actually used day to day -- mobile money / other
+// payment rails were offered but never used, so drop them from the picker.
+const PAYMENT_METHODS = ['Cash','Bank transfer'];
 const PAYMENT_METHOD_LABEL_KEYS = {'Cash':'paymethod.cash','Bank transfer':'paymethod.bankTransfer','Mobile money':'paymethod.mobileMoney','Other':'paymethod.other'};
 function paymentMethodLabel(m){ const k = PAYMENT_METHOD_LABEL_KEYS[m]; return k ? t(k) : m; }
 function openLogPaymentForm(tr){
