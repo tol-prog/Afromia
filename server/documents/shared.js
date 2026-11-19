@@ -35,6 +35,31 @@ function fontPath(name) {
   return path.join(FONTS_DIR, name);
 }
 
+// The OCA agency's own header block (logo + trilingual agency name) and
+// document-control numbers, as issued on the current official templates
+// (Admission Card = OF/OCAPD/002, Candidates Assessment Application Form =
+// OF/OCAPD/001). Both documents share this exact header design -- see
+// idCards.js and applicationForm.js for how each draws it in its own page
+// geometry. The Amharic line needs a Unicode font (see NotoSansEthiopic.ttf
+// in assets/fonts) since the PDF standard 14 fonts can't encode it.
+const OCA_AGENCY_NAME_OM = 'Ejensii Mirkaneessa Gahumsa Ogummaa Oromiyaa';
+const OCA_AGENCY_NAME_AM = 'የኦሮሚያ የሙያ ብቃት ማረጋገጫ ኤጄንሲ';
+const OCA_AGENCY_NAME_EN = 'Oromia Occupational Competence Assurance Agency';
+const OCA_COMPANY_LABEL_OM = 'Maqaa Mana Hojii/';
+const OCA_COMPANY_LABEL_EN = 'Company Name';
+const OCA_DOCNO_LABEL_OM = 'Lakk.Sanadaa/';
+const OCA_DOCNO_LABEL_EN = 'Document No.';
+const OCA_TITLE_LABEL_OM = 'Mata-duree/Title';
+const OCA_ISSUE_LABEL_OM = 'Lakk.Maxxansaa/Issue No.';
+const OCA_PAGE_LABEL_OM = 'Fuula/Page No.';
+const OCA_ISSUE_NO = '01';
+const DOC_NO_ID_CARD = 'OF/OCAPD/002';
+const DOC_NO_APPLICATION_FORM = 'OF/OCAPD/001';
+const ID_CARD_TITLE_OM = ['Unkaa Waraqaa Eenyummaa Madaalamaa', 'Candidate Identification Card Form'];
+const APPLICATION_FORM_TITLE_OM = ['Unka Iyyannoo Madaallii Madaalamaa', 'Candidates Assessment Application Form'];
+const OCA_ISSUE_CHECK_OM = "Sanada kanatti fayyadamuu keessan dura maxxansa sirrii ta'uu isaa mirkaneessa!!";
+const OCA_ISSUE_CHECK_EN = 'Please make sure that this is the correct issue before use!!';
+
 const BATCH_CODE_PREFIX_DEFAULT = 'A10';
 // Afromia's own institute facts -- used as the DEFAULT for every generator
 // (so nothing changes for Afromia's own DB-backed batches), but every
@@ -204,6 +229,20 @@ const REQUIRED_FIELDS = {
   cocExcelReport: ['fullName', 'sex', 'age', 'educationLevel', 'region', 'cityZone', 'woredaKebele'],
 };
 
+/** Registers fontkit on `pdfDoc` and embeds the Ethiopic Unicode font used
+ * for the Amharic line in the OCA header block (see drawOcaHeader-style
+ * code in idCards.js / applicationForm.js) -- the PDF standard 14 fonts
+ * (Times/Helvetica) only cover WinAnsi, so Amharic text drawn with them
+ * would throw an encoding error rather than render. Afaan Oromo and
+ * English text keep using the regular embedded Times/Helvetica fonts. */
+async function embedEthiopicFont(pdfDoc) {
+  // eslint-disable-next-line global-require
+  const fontkit = require('@pdf-lib/fontkit');
+  pdfDoc.registerFontkit(fontkit);
+  const bytes = fs.readFileSync(fontPath('NotoSansEthiopic.ttf'));
+  return pdfDoc.embedFont(bytes, { subset: true });
+}
+
 function completeness(shapedTrainees) {
   const report = {};
   for (const [doc, fields] of Object.entries(REQUIRED_FIELDS)) {
@@ -221,6 +260,7 @@ module.exports = {
   ensureFontconfig,
   imagePath,
   fontPath,
+  embedEthiopicFont,
   regNo,
   splitName,
   fmtEcDate,
@@ -232,5 +272,22 @@ module.exports = {
   APPLICATION_FEE,
   PRACTICAL_EXPERIENCE_DAYS,
   BATCH_CODE_PREFIX_DEFAULT,
+  OCA_AGENCY_NAME_OM,
+  OCA_AGENCY_NAME_AM,
+  OCA_AGENCY_NAME_EN,
+  OCA_COMPANY_LABEL_OM,
+  OCA_COMPANY_LABEL_EN,
+  OCA_DOCNO_LABEL_OM,
+  OCA_DOCNO_LABEL_EN,
+  OCA_TITLE_LABEL_OM,
+  OCA_ISSUE_LABEL_OM,
+  OCA_PAGE_LABEL_OM,
+  OCA_ISSUE_NO,
+  DOC_NO_ID_CARD,
+  DOC_NO_APPLICATION_FORM,
+  ID_CARD_TITLE_OM,
+  APPLICATION_FORM_TITLE_OM,
+  OCA_ISSUE_CHECK_OM,
+  OCA_ISSUE_CHECK_EN,
   INSTITUTE_PHONE,
 };
