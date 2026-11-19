@@ -586,9 +586,9 @@ const I18N = {
     'nav.sec.manage': 'Bulchiinsa',
     'nav.dashboard': 'Daashboordii',
     'nav.trainees': 'Leenjifamtoota',
-    'nav.cohorts': 'Baacii',
+    'nav.cohorts': 'Baachii',
     'nav.dormitory': 'Iddoo Bultii',
-    'nav.curriculum': 'Kurikulamii',
+    'nav.curriculum': 'Kaarikulamii',
     'nav.staff': 'Hojjettoota',
     'nav.branches': 'Damee',
     'nav.reports': 'Gabaasa',
@@ -612,8 +612,9 @@ const I18N = {
     'pill.graduated': 'Eebbifameera',
     'pill.withdrawn': "Addaan ba’e",
     'pill.active': 'Hojii irra jira',
+    'pill.inTraining': 'Leenjii irra jira',
     'pill.cancelled': 'Haqameera',
-    'col.batch': 'Baacii',
+    'col.batch': 'Baachii',
     'col.branch': 'Damee',
     'col.track': 'Gosa Leenjii',
     'col.trainees': 'Leenjifamtoota',
@@ -639,9 +640,9 @@ const I18N = {
     'col.timesPurchased': 'Al Bitame',
     'col.avgCost': 'Giddu-galeessa Gatii',
     'dash.title': 'Daashboordii',
-    'dash.activeTrainees': 'Leenjifamtoota Hojii irra Jiran',
+    'dash.activeTrainees': 'Leenjifamtoota Leenjii Irra Jiran',
     'dash.totalOnRoll': 'walumaa galatti {n} galmaa’e',
-    'dash.activeBatches': 'Baacii Hojii irra Jiran',
+    'dash.activeBatches': 'Baachii Leenjii Irra Jiran',
     'dash.totalBatches': 'walumaa galatti {n}',
     'dash.cocPassed': 'COC Darbe',
     'dash.examsScheduled': 'qormaata {n} sagantaa qabate',
@@ -651,13 +652,19 @@ const I18N = {
     'dash.historicalPlusLogged': 'Durii + Galmaa’e',
     'dash.netProfitAllTime': 'Bu’aa Qulqulluu (yeroo hundaa)',
     'dash.marginSuffix': 'daangaa {pct}',
-    'dash.batchesOverview': 'Ilaalcha Baaciiwwanii',
-    'dash.batchesOverviewSub': 'Baacii tokko cuqaasuun galmee, faayinaansii, hirmaannaa fi madaallii isaa bani.',
+    'dash.batchesOverview': 'Ilaalcha Baachiiwwanii',
+    'dash.batchesOverviewSub': 'Baachii tokko cuqaasuun galmee, faayinaansii, hirmaannaa fi madaallii isaa bani.',
+    'dash.inTrainingSub': 'Leenjifamtoota Leenjii Irra Jiran',
+    'dash.viewBatch': 'Baachii Ilaali',
+    'dash.noTraineesInBatch': 'Baachii kana keessatti hanga ammaatti leenjifamaan hin jiru.',
+    'dash.noCurrentBatchTitle': "Baachiin Hojii irra Jiru Hin Jiru",
+    'dash.noCurrentBatchDesc': "Ammaan kana baachiin hojii irra jiru hin jiru — gad mirga 'Baachii' jalatti haaraa uumi, yookiin baachiiwwan durii gad kana keessatti argamu ilaali.",
+    'dash.previousBatchesTitle': 'Baachiiwwan Duraanii',
     'dash.needsAttention': 'Xiyyeeffannoo Barbaada',
     'dash.needsAttentionSub': "Leenjifamtoota hojii irra jiran kan sanadni isaanii hin xumuramne yookiin qormaata COC kufan.",
     'dash.fullyDocReady': 'sanada {ready} / {total} guutummaatti qophaa’e',
     'dash.nothingNeedsAttention': 'Amma xiyyeeffannoo kan barbaadu hin jiru.',
-    'dash.noBatchesYet': 'Hanga ammaatti baaciin hin jiru.',
+    'dash.noBatchesYet': 'Hanga ammaatti baachiin hin jiru.',
     'cohortStats.trainees': 'Leenjifamtoota',
     'cohortStats.paidFull': 'Guutummaatti Kaffalameera',
     'cohortStats.partial': 'Gartokkoon Kaffalameera',
@@ -682,11 +689,14 @@ const I18N = {
     'form.labourId': 'Lakkoofsa ID Hojjetaa',
     'form.passportNo': 'Lakkoofsa Paaspoortii',
     'form.branch': 'Damee',
-    'form.cohort': 'Baacii',
+    'form.cohort': 'Baachii',
     'form.unassigned': '— Hin Ramadamne —',
     'form.intakeDate': 'Guyyaa Galmee',
     'form.feeAmountEtb': 'Hanga Kaffaltii (ETB)',
     'form.feeHint': 'Sadarkaa kaffaltii Qindaa’ina keessatti jiru fudhata — yoo barbaachise leenjifamaa tokkoon tokkoon isaaniif jijjiiri.',
+    'section.firstPayment': 'Kaffaltii Jalqabaa',
+    'hint.firstPaymentOptional': "Yoo kaffaltiin ammaa hin jirre 0 dhiisi — kaffaltii boodarra fuula leenjifamaa irraa dabalchuun ni danda'ama.",
+    'hint.remainingAfterThisPayment': 'Kaffaltii: {fee} · Ammaan kana kaffalaa jiru: {paying} · Hafe: {remaining}',
     'form.idKebeleCard': 'ID / Waraqaa Ganda',
     'form.medicalClearance': 'Ragaa Fayyaa',
     'form.policeClearance': 'Ragaa Poolisii',
@@ -705,7 +715,7 @@ const I18N = {
     'trainees.pendingSync': 'Walsimsiisuu Eegaa Jira',
     'trainees.pendingSyncTitle': "Meeshaa kana irratti ol kaa’ame, amma garuu sarvariitti hin walsimsiifamne",
     'trainees.unassigned': 'Hin Ramadamne',
-    'trainee.noBatch': 'Baacii hin qabu',
+    'trainee.noBatch': 'Baachii hin qabu',
     'trainee.edit': 'Gulaali',
     'trainee.updateCoc': 'COC Haaromsi',
     'trainee.assignDorm': 'Iddoo Bultii Ramadi',
@@ -767,35 +777,35 @@ const I18N = {
     'assess.pass': 'Darbe',
     'assess.needsRetake': "Irra deebi'uu Barbaada",
     'attendance.historyTitle': 'Seenaa Hirmaannaa',
-    'attendance.noBatchAssigned': 'Leenjifamaan kun baacii hin qabu.',
+    'attendance.noBatchAssigned': 'Leenjifamaan kun baachii hin qabu.',
     'attendance.noneYet': 'Hanga ammaatti hirmaannaan hin galmoofne.',
     'attendance.percentPresentSuffix': 'dhibbeentaa {pct}% argamee ({n} taatee)',
     'attPill.present': 'Argameera',
     'attPill.absent': 'Hin Argamne',
     'attPill.excused': 'Dhiifama',
     'label.balShort': 'Hafe',
-    'batches.desc': "Baaciiwwan leenjii — faayinaansii, hirmaannaa, madaallii fi adeemsa COC baacii tokkoon tokkoo keessatti argama.",
-    'btn.newBatch': '+ Baacii Haaraa',
-    'batches.noneInScope': 'Hanga ammaatti kutaa kana keessatti baaciin hin jiru.',
-    'batch.editTitle': 'Baacii Gulaali',
-    'batch.newTitle': 'Baacii Haaraa',
-    'form.batchNumber': 'Lakk. Baacii',
-    'placeholder.batchNumber': 'fkn. Baacii 12',
+    'batches.desc': "Baachiiwwan leenjii — faayinaansii, hirmaannaa, madaallii fi adeemsa COC baachii tokkoon tokkoo keessatti argama.",
+    'btn.newBatch': '+ Baachii Haaraa',
+    'batches.noneInScope': 'Hanga ammaatti kutaa kana keessatti baachiin hin jiru.',
+    'batch.editTitle': 'Baachii Gulaali',
+    'batch.newTitle': 'Baachii Haaraa',
+    'form.batchNumber': 'Lakk. Baachii',
+    'placeholder.batchNumber': 'fkn. Baachii 12',
     'form.track': 'Gosa Leenjii',
     'form.startDate': 'Guyyaa Jalqabaa',
     'form.targetGraduation': 'Guyyaa Eebbaa Karoorfame',
-    'toast.batchNumberRequired': "Lakk. Baaciin barbaachisaadha",
-    'batch.createSubmit': 'Baacii Uumi',
-    'toast.batchUpdated': 'Baaciin haaromfameera',
-    'toast.batchCreated': "Baaciin uumameera",
+    'toast.batchNumberRequired': "Lakk. Baachiin barbaachisaadha",
+    'batch.createSubmit': 'Baachii Uumi',
+    'toast.batchUpdated': 'Baachiin haaromfameera',
+    'toast.batchCreated': "Baachiin uumameera",
     'label.startedWord': 'jalqabe',
     'tab.roster': 'Galmee',
     'tab.finance': 'Faayinaansii',
     'tab.takeAttendance': 'Hirmaannaa Fudhu',
     'stat.traineesCount': 'leenjifamtoota {n}',
-    'empty.noTraineesInBatch': "Hanga ammaatti leenjifamaan baacii kanaaf hin ramadamne.",
+    'empty.noTraineesInBatch': "Hanga ammaatti leenjifamaan baachii kanaaf hin ramadamne.",
     'card.historicalBaseline': 'Sadarkaa Durii',
-    'historicalBaseline.sub': "Baacii kanaaf wal-qunnamtiin kallattiin hin galmoofne — lakkoofsonni kunneen sadarkaa durii sirna duraanii irraa fudhataman.",
+    'historicalBaseline.sub': "Baachii kanaaf wal-qunnamtiin kallattiin hin galmoofne — lakkoofsonni kunneen sadarkaa durii sirna duraanii irraa fudhataman.",
     'info.tuitionRevenue': 'Galii Kaffaltii Barnootaa',
     'info.certFeeRevenue': 'Galii Kaffaltii Ragaa Xumuraa',
     'info.totalRevenue': 'Galii Waliigalaa',
@@ -809,22 +819,22 @@ const I18N = {
     'stat.netProfit': "Bu'aa Qulqulluu",
     'stat.studentsCertified': 'Barattoota Ragaa Argatan',
     'stat.entriesCount': 'galmee {n}',
-    'card.revenueEntriesBatch': 'Galmee Galii — baacii kana',
-    'card.expenseEntriesBatch': 'Galmee Baasii — baacii kana',
-    'empty.noRevenueForBatch': 'Galmee galii baacii kanaaf mallatteeffame hin jiru.',
-    'empty.noExpenseForBatch': 'Galmee baasii baacii kanaaf mallatteeffame hin jiru.',
-    'empty.addTraineesBeforeAttendance': 'Hirmaannaa fudhachuu dura leenjifamtoota baacii kanaa keessa galchi.',
+    'card.revenueEntriesBatch': 'Galmee Galii — baachii kana',
+    'card.expenseEntriesBatch': 'Galmee Baasii — baachii kana',
+    'empty.noRevenueForBatch': 'Galmee galii baachii kanaaf mallatteeffame hin jiru.',
+    'empty.noExpenseForBatch': 'Galmee baasii baachii kanaaf mallatteeffame hin jiru.',
+    'empty.addTraineesBeforeAttendance': 'Hirmaannaa fudhachuu dura leenjifamtoota baachii kanaa keessa galchi.',
     'hint.tapStatusThenSave': "Leenjifamaa tokkoon tokkoof haala cuqaasi, ergasii ol kaa'i.",
     'btn.saveAttendance': "Hirmaannaa Ol kaa'i",
     'toast.attendanceSavedFor': "Hirmaannaan guyyaa {date} ol kaa'ameera",
     'toast.couldNotSaveAttendance': "Hirmaannaa ol kaa'uu hin dandeenye",
-    'empty.addTraineesBeforeAssessments': 'Madaallii galchuu dura leenjifamtoota baacii kanaa keessa galchi.',
+    'empty.addTraineesBeforeAssessments': 'Madaallii galchuu dura leenjifamtoota baachii kanaa keessa galchi.',
     'card.enterAssessment': 'Madaallii Galchi',
     'hint.recordScoreForOne': 'Leenjifamaa fi mojuulii tokkoof qabxii hojii yookiin barreeffamaa galmeessi.',
     'form.trainee': 'Leenjifamaa',
     'form.score': 'Qabxii (0–100)',
     'btn.saveAssessment': "Madaallii Ol kaa'i",
-    'card.recentAssessmentsBatch': 'Madaallii Dhiyoo — baacii kana',
+    'card.recentAssessmentsBatch': 'Madaallii Dhiyoo — baachii kana',
     'toast.assessmentSaved': "Madaalliin ol kaa'ameera",
     'assess.retakeShort': "Irra Deebi'i",
     'dorm.desc': 'Leenjifamtootaaf iddoo jireenyaa yeroo leenjii dursa deemsaa.',
@@ -855,13 +865,13 @@ const I18N = {
     'submit.addModule': "Mojuulii Ida'i",
     'perm.trainees.label': 'Leenjifamtoota',
     'perm.trainees.desc': "Leenjifamtoota galmeessuu fi gulaaluu, kaffaltii galmeessuu, siree bultii ramaduu",
-    'perm.cohorts.label': 'Baacii',
-    'perm.cohorts.desc': "Baacii uumuu/gulaaluu, hirmaannaa fudhachuu, madaallii galchuu",
+    'perm.cohorts.label': 'Baachii',
+    'perm.cohorts.desc': "Baachii uumuu/gulaaluu, hirmaannaa fudhachuu, madaallii galchuu",
     'perm.dormitory.label': 'Iddoo Bultii',
     'perm.dormitory.desc': "Kutaa bultii ida'uu fi gulaaluu",
     'perm.finance.label': 'Faayinaansii',
     'perm.finance.desc': "Galii, baasii, meeshaa mana nyaataa, baasii ji'aa fi sadarkaalee",
-    'perm.curriculum.label': 'Kuruukulamii',
+    'perm.curriculum.label': 'Kaarikulamii',
     'perm.curriculum.desc': "Mojuulii leenjii ida'uu fi gulaaluu",
     'perm.branches.label': 'Damee',
     'perm.branches.desc': "Dameewwan gidduu-gala leenjii ida'uu fi gulaaluu",
@@ -870,7 +880,7 @@ const I18N = {
     'perm.staff.label': 'Hojjettoota',
     'perm.staff.desc': "Herrega hojjettootaa fi mirga isaanii ida'uu/gulaaluu",
     'pill.fullAccess': 'Mirga Guutuu',
-    'pill.legacyDefaultAccess': 'Baacii fi leenjifamtoota (ilaaluu) · hirmaannaa fi madaallii',
+    'pill.legacyDefaultAccess': 'Baachii fi leenjifamtoota (ilaaluu) · hirmaannaa fi madaallii',
     'pill.signInOnly': 'Seensa Qofa',
     'staff.desc': "Bulchitootaa fi hojjettoota seenuu danda'an — wanta namni tokkoon tokkoo isaanii argan fi hojjetan sirriitti filadhu.",
     'btn.addStaff': "+ Hojjetaa Ida'i",
@@ -896,6 +906,7 @@ const I18N = {
     'toast.staffUpdated': 'Herregni hojjetaa haaromfameera',
     'toast.staffAdded': "Herregni hojjetaa ida'ameera",
     'toast.couldNotSaveStaff': "Herrega hojjetaa ol kaa'uu hin dandeenye",
+    'toast.somethingWentWrong': "Wanti tokko dogoggoreera — irra deebi'ii yaali",
     'label.adminOnlySuffix': '(bulchaa qofa)',
     'branches.desc': 'Bakka gidduu-gala leenjii.',
     'btn.addBranch': "+ Damee Ida'i",
@@ -910,16 +921,16 @@ const I18N = {
     'toast.branchUpdated': 'Dameen haaromfameera',
     'toast.branchAdded': "Dameen ida'ameera",
     'finance.overviewTitle': 'Ilaalcha Faayinaansii',
-    'finance.overviewDesc': "Sadarkaa durii (Baacii 1–8) kan galmee erga sanaa waliin walitti makame — lakkoofsonni akkuma galmeen Galii fi Baasii dabalamuun jijjiiramu.",
+    'finance.overviewDesc': "Sadarkaa durii (Baachii 1–8) kan galmee erga sanaa waliin walitti makame — lakkoofsonni akkuma galmeen Galii fi Baasii dabalamuun jijjiiramu.",
     'stat.grandTotalRevenue': 'Galii Waliigalaa Guddaa',
     'stat.grandRevenueFoot': "Durii {hist} + galmaa'e {log}",
     'stat.grandTotalCosts': 'Baasii Waliigalaa Guddaa',
     'stat.netProfitToDate': "Bu'aa Qulqulluu Hanga Ammaa",
     'stat.marginFoot': 'Daangaa {pct}',
     'stat.studentsCertifiedHistorical': 'Barattoota Ragaa Argatan (Durii)',
-    'stat.batches1to8Foot': 'Sadarkaa durii Baacii 1–8 — Baacii 9+ ilaali',
+    'stat.batches1to8Foot': 'Sadarkaa durii Baachii 1–8 — Baachii 9+ ilaali',
     'card.loggedTransactionsOnly': "Wal-qunnamtii Galmaa'e Qofa",
-    'card.loggedTransactionsSub': "Waliigala waan Galmee Galii fi Galmee Baasii keessatti jiru (Baacii 9 fi kan itti aanu).",
+    'card.loggedTransactionsSub': "Waliigala waan Galmee Galii fi Galmee Baasii keessatti jiru (Baachii 9 fi kan itti aanu).",
     'stat.totalLoggedRevenue': "Galii Waliigalaa Galmaa'e",
     'stat.totalLoggedExpenses': "Baasii Waliigalaa Galmaa'e",
     'stat.netFromLogged': "Bu'aa Wal-qunnamtii Galmaa'e irraa",
@@ -930,14 +941,14 @@ const I18N = {
     'stat.initialInvestment': 'Invastimentii Jalqabaa',
     'stat.pctInvestmentRecovered': "Dhibbeentaa Invastimentii Deebi'e",
     'stat.remainingToBreakeven': "Hafe Madaalamuu Danda'uuf",
-    'stat.breakevenStudentsPerBatch': "Barattoota Madaalamuu / Baacii",
-    'stat.currentAvgBatchSizeFoot': 'Giddu-galeessa Guddina Baacii Ammaa {n}',
+    'stat.breakevenStudentsPerBatch': "Barattoota Madaalamuu / Baachii",
+    'stat.currentAvgBatchSizeFoot': 'Giddu-galeessa Guddina Baachii Ammaa {n}',
     'label.total': 'Waliigala',
     'revenue.desc': "Guyyaa tokkoon tokkoof kaffaltii argame. Galmee {n} · Waliigala {total}.",
     'btn.addRevenueEntry': "+ Galmee Galii Ida'i",
     'empty.noRevenueLoggedYet': 'Hanga ammaatti galiin hin galmoofne.',
     'modal.addRevenueEntryTitle': "Galmee Galii Ida'i",
-    'form.batchOptional': 'Lakk. Baacii (filannoo)',
+    'form.batchOptional': 'Lakk. Baachii (filannoo)',
     'placeholder.batchExample': 'fkn. 12',
     'submit.addEntry': "Galmee Ida'i",
     'toast.amountRequired': 'Hangi barbaachisaadha',
@@ -956,7 +967,7 @@ const I18N = {
     'card.itemLog': 'Galmee Meeshaa',
     'empty.nothingLoggedYet': 'Hanga ammaatti homaa hin galmoofne.',
     'modal.logKitchenItemTitle': 'Meeshaa Mana Nyaataa Galmeessi',
-    'form.batchHash': 'Lakk. Baacii',
+    'form.batchHash': 'Lakk. Baachii',
     'form.item': 'Meeshaa',
     'submit.addItem': "Meeshaa Ida'i",
     'toast.itemAmountRequired': 'Meeshaa fi hangi barbaachisaadha',
@@ -980,10 +991,10 @@ const I18N = {
     'rate.tuitionFeePerStudent': 'Kaffaltii Barnootaa Barataa Tokkoof',
     'rate.certFeePerStudent': 'Kaffaltii Ragaa Xumuraa Barataa Tokkoof',
     'rate.cocExamCostPerStudent': 'Baasii Qormaata COC Barataa Tokkoof',
-    'card.perBatchCostsAvg': 'Baasii Baacii Tokkoof (Giddu-galeessa)',
-    'rate.examinerFeePerBatch': 'Kaffaltii Qorataa Baacii Tokkoof',
-    'rate.examinerFoodAccomPerBatch': 'Nyaataa fi Iddoo Jireenyaa Qorataa Baacii Tokkoof',
-    'rate.kitchenItemsAvgPerBatch': 'Meeshaa Mana Nyaataa Baacii Tokkoof (giddu-galeessa)',
+    'card.perBatchCostsAvg': 'Baasii Baachii Tokkoof (Giddu-galeessa)',
+    'rate.examinerFeePerBatch': 'Kaffaltii Qorataa Baachii Tokkoof',
+    'rate.examinerFoodAccomPerBatch': 'Nyaataa fi Iddoo Jireenyaa Qorataa Baachii Tokkoof',
+    'rate.kitchenItemsAvgPerBatch': 'Meeshaa Mana Nyaataa Baachii Tokkoof (giddu-galeessa)',
     'card.monthlyFixedOverhead': "Baasii Waliigalaa Ji'aa Hin Jijjiiramne",
     'rate.rentPerMonth': "Kaffaltii Mana Ji'aan",
     'rate.securitySalaryPerMonth': "Miindaa Eegduu Nageenyaa Ji'aan",
@@ -1021,21 +1032,21 @@ const I18N = {
     'doc.recordBooks': 'Kitaaba Galmee',
     'doc.cocExcelReport': 'Gabaasa Ekseelii COC (leenjifamtoota hundaaf)',
     'doc.cocReport': 'Gabaasa COC',
-    'reports.desc': "Cuunfaa hordoffii seeraa, uumuu sanadoota baacii, fi baafata daataa.",
+    'reports.desc': "Cuunfaa hordoffii seeraa, uumuu sanadoota baachii, fi baafata daataa.",
     'btn.exportTraineesCsv': 'Leenjifamtoota Baasi (CSV)',
     'card.branchComplianceSummary': 'Cuunfaa Hordoffii Seeraa Damee',
     'col.docsFullyCleared': 'Sanadni Guutummaatti Xumurame',
     'toast.csvDownloaded': 'CSV buufameera',
-    'empty.noBatchesCreateFirst': "Hanga ammaatti baaciin hin jiru — dursa Baacii jalatti tokko uumi.",
-    'label.cohortSettings': "Qindaa'ina Baacii",
+    'empty.noBatchesCreateFirst': "Hanga ammaatti baachiin hin jiru — dursa Baachii jalatti tokko uumi.",
+    'label.cohortSettings': "Qindaa'ina Baachii",
     'hint.cohortSettingsSummary': 'Leenjifamtoota {n} {code} keessa jiru. Damee Madaallii: {branch}. Yeroo Leenjii: {start} hanga {end} (B.A.)',
-    'btn.editBatchReportSettings': 'Qindaa\'ina Gabaasa Baacii Gulaali',
-    'btn.importBatchSpreadsheet': 'Speershiitii Baacii Galchi',
+    'btn.editBatchReportSettings': 'Qindaa\'ina Gabaasa Baachii Gulaali',
+    'btn.importBatchSpreadsheet': 'Speershiitii Baachii Galchi',
     'label.checkingCompleteness': 'Guutummaa Daataa Ilaalaa Jira…',
     'btn.downloadDoc': '{label} Buufi',
-    'hint.cocTransmittalDesc': "Xalayaa dabarsaa COC (Mirkaneessa Dandeettii Hojii Oromiyaa) — eebbifamtoota baacii kanaaf madaallii gaafachuu.",
+    'hint.cocTransmittalDesc': "Xalayaa dabarsaa COC (Mirkaneessa Dandeettii Hojii Oromiyaa) — eebbifamtoota baachii kanaaf madaallii gaafachuu.",
     'btn.generateCocReportLetter': "Gabaasa Xalayaa COC Uumi",
-    'card.batchDocumentReporting': 'Gabaasa Sanadoota Baacii',
+    'card.batchDocumentReporting': 'Gabaasa Sanadoota Baachii',
     'label.generatingEllipsis': 'Uumaa Jira…',
     'toast.downloaded': 'Buufameera',
     'toast.failedToGenerateDoc': 'Sanada uumuun hin milkoofne',
@@ -1045,15 +1056,15 @@ const I18N = {
     'label.noTraineesToCheck': "Hanga ammaatti leenjifamaan ilaaluuf hin jiru.",
     'label.couldNotCheckCompleteness': 'Guutummaa daataa ilaaluu hin dandeenye.',
     'card.generateDocsFromSpreadsheet': 'Sanadoota Speershiitii irraa Uumi',
-    'hint.uploadRosterDesc': "Galmee leenjifamtoota baacii (.xlsx/.csv) ol fe'uun ragaa xumuraa, kaardii ID, unka iyyannoo, kitaaba galmee, gabaasa Ekseelii COC, yookiin xalayaa COC kallattiin isa irraa uumi — qindaa'ina baacii hin barbaachisu. Baacii yeroo tokkoof, yookiin mana leenjii biraa guutummaatti fayyada; wanti kana keessatti kuusaa leenjifamtootaatti hin ol kaa'amu.",
+    'hint.uploadRosterDesc': "Galmee leenjifamtoota baachii (.xlsx/.csv) ol fe'uun ragaa xumuraa, kaardii ID, unka iyyannoo, kitaaba galmee, gabaasa Ekseelii COC, yookiin xalayaa COC kallattiin isa irraa uumi — qindaa'ina baachii hin barbaachisu. Baachii yeroo tokkoof, yookiin mana leenjii biraa guutummaatti fayyada; wanti kana keessatti kuusaa leenjifamtootaatti hin ol kaa'amu.",
     'btn.open': 'Bani',
     'btn.cancel': 'Haqi',
     'btn.openSpreadsheetTool': 'Meeshaa Speershiitii Bani',
     'label.traineesLoadedFrom': "Leenjifamtoota {n} fe'amaniiru {file} irraa",
     'label.traineesLoadedNoFile': "Leenjifamtoota {n} fe'amaniiru",
     'label.maleFemaleCount': 'dhiira {male}, dubara {female}',
-    'form.batchFileLabel': 'Mallattoo Baacii / Faayilii',
-    'label.instituteBatchDetails': 'Odeeffannoo Mana Leenjii fi Baacii',
+    'form.batchFileLabel': 'Mallattoo Baachii / Faayilii',
+    'label.instituteBatchDetails': 'Odeeffannoo Mana Leenjii fi Baachii',
     'form.assessmentCenterName': 'Maqaa Giddu-gala Madaallii/Leenjii',
     'form.ocaAssessmentBranch': 'Damee Madaallii OCA',
     'form.trainingCityAddress': 'Magaalaa / Teessoo Leenjii',
@@ -1069,7 +1080,7 @@ const I18N = {
     'form.rosterFile': 'Faayilii Galmee',
     'btn.readFile': 'Faayilii Dubbisi',
     'label.noFileLoadedYet': "Hanga ammaatti faayiliin hin fe'amne.",
-    'hint.cocLetterUploadedDesc': "Xalayaa dabarsaa COC baacii ol fe'ame kanaaf (mallattoo waraqaa mataa OCA Oromiyaa, chaappaa fi mallattoon kan Afromia mataa isaa ta'u — kun barreeffama xalayaa fi lakkoofsa galmee ol fe'ame irraa uuma).",
+    'hint.cocLetterUploadedDesc': "Xalayaa dabarsaa COC baachii ol fe'ame kanaaf (mallattoo waraqaa mataa OCA Oromiyaa, chaappaa fi mallattoon kan Afromia mataa isaa ta'u — kun barreeffama xalayaa fi lakkoofsa galmee ol fe'ame irraa uuma).",
     'form.referenceNumber': 'Lakkoofsa Wabii',
     'form.letterDateOptional': 'Guyyaa Xalayaa (B.A., filannoo)',
     'btn.generateCocLetter': 'Xalayaa COC Uumi',
@@ -1083,8 +1094,8 @@ const I18N = {
     'toast.readSpreadsheetFirst': 'Dursa faayilii speershiitii dubbisi',
     'toast.failedToGenerateLetter': 'Xalayaa uumuun hin milkoofne',
     'toast.referenceNumberRequired': 'Lakkoofsi wabii barbaachisaadha',
-    'modal.batchReportSettingsTitle': "Qindaa'ina Gabaasa Baacii — {code}",
-    'hint.feedsCertEtc': "Kunneen ragaa xumuraa, kaardii ID, unka fi xalayaa COC baacii kanaaf fayyadu. Guyyoonni Kalandarii Itoophiyaa (B.A.) akka YYYY-MM-DD.",
+    'modal.batchReportSettingsTitle': "Qindaa'ina Gabaasa Baachii — {code}",
+    'hint.feedsCertEtc': "Kunneen ragaa xumuraa, kaardii ID, unka fi xalayaa COC baachii kanaaf fayyadu. Guyyoonni Kalandarii Itoophiyaa (B.A.) akka YYYY-MM-DD.",
     'form.assessmentBranch': 'Damee Madaallii',
     'form.trainingCity': 'Magaalaa Leenjii',
     'form.trainingStartEc': 'Jalqaba Leenjii (B.A.)',
@@ -1092,10 +1103,10 @@ const I18N = {
     'form.recordBookYearLabel': 'Mallattoo "Waggaa" Kitaaba Galmee',
     'form.regNoPrefix': 'Mallattoo Dura Lakk. Galmee',
     'submit.saveSettings': "Qindaa'ina Ol kaa'i",
-    'toast.batchSettingsSaved': "Qindaa'inni baacii ol kaa'ameera",
+    'toast.batchSettingsSaved': "Qindaa'inni baachii ol kaa'ameera",
     'toast.failedToSave': "Ol kaa'uun hin milkoofne",
-    'modal.importBatchSpreadsheetTitle': 'Speershiitii Baacii Galchi — {code}',
-    'hint.importRosterMatchDesc': "Galmee baacii (.xlsx yookiin .csv) ol fe'i. Sararoonni maqaa guutuudhaan leenjifamtoota {code} keessa jiraniin walsimsiifamu; sararoonni wal hin simne gabaafamu, hin uumaman.",
+    'modal.importBatchSpreadsheetTitle': 'Speershiitii Baachii Galchi — {code}',
+    'hint.importRosterMatchDesc': "Galmee baachii (.xlsx yookiin .csv) ol fe'i. Sararoonni maqaa guutuudhaan leenjifamtoota {code} keessa jiraniin walsimsiifamu; sararoonni wal hin simne gabaafamu, hin uumaman.",
     'submit.import': 'Galchi',
     'toast.updatedTraineesCount': "Leenjifamtoota {n} haaromfameera",
     'toast.unmatchedSuffix': ', {m} wal hin simne',
@@ -1174,6 +1185,7 @@ const I18N = {
     'pill.graduated': 'Graduated',
     'pill.withdrawn': 'Withdrawn',
     'pill.active': 'Active',
+    'pill.inTraining': 'Active',
     'pill.cancelled': 'Cancelled',
     'col.batch': 'Batch',
     'col.branch': 'Branch',
@@ -1215,6 +1227,12 @@ const I18N = {
     'dash.marginSuffix': '{pct} margin',
     'dash.batchesOverview': 'Batches overview',
     'dash.batchesOverviewSub': 'Click a batch to open its roster, finance, attendance and assessments.',
+    'dash.inTrainingSub': 'Trainees currently in training',
+    'dash.viewBatch': 'View batch',
+    'dash.noTraineesInBatch': 'No trainees in this batch yet.',
+    'dash.noCurrentBatchTitle': 'No active batch right now',
+    'dash.noCurrentBatchDesc': "There's no active batch at the moment — start a new one under \"Batches\", or see past batches listed below.",
+    'dash.previousBatchesTitle': 'Previous batches',
     'dash.needsAttention': 'Needs attention',
     'dash.needsAttentionSub': 'Active trainees missing a cleared document or with a failed CoC attempt.',
     'dash.fullyDocReady': '{ready} / {total} fully document-ready',
@@ -1249,6 +1267,9 @@ const I18N = {
     'form.intakeDate': 'Intake date',
     'form.feeAmountEtb': 'Fee amount (ETB)',
     'form.feeHint': 'Defaults to the tuition rate in Settings — override per trainee if needed.',
+    'section.firstPayment': 'First Payment',
+    'hint.firstPaymentOptional': 'Leave at 0 if no payment is being collected right now — you can log one later from the trainee\'s page.',
+    'hint.remainingAfterThisPayment': 'Fee: {fee} · Paying now: {paying} · Remaining: {remaining}',
     'form.idKebeleCard': 'ID / kebele card',
     'form.medicalClearance': 'Medical clearance',
     'form.policeClearance': 'Police clearance',
@@ -1458,6 +1479,7 @@ const I18N = {
     'toast.staffUpdated': 'Staff account updated',
     'toast.staffAdded': 'Staff account added',
     'toast.couldNotSaveStaff': 'Could not save staff account',
+    'toast.somethingWentWrong': 'Something went wrong — please try again',
     'label.adminOnlySuffix': '(administrator only)',
     'branches.desc': 'Training center locations.',
     'btn.addBranch': '+ Add branch',
@@ -1904,14 +1926,14 @@ function pillForCoc(v){
 const STATE_LABEL_KEYS = {
   pending:'pill.pending', submitted:'pill.submitted', cleared:'pill.cleared',
   'not-started':'pill.notStarted', scheduled:'pill.examScheduled', passed:'pill.cocPassed', failed:'pill.failedRetake',
-  active:'pill.active', graduated:'pill.graduated', withdrawn:'pill.withdrawn', 'deployment-ready':'pill.deploymentReady', cancelled:'pill.cancelled',
+  active:'pill.inTraining', graduated:'pill.graduated', withdrawn:'pill.withdrawn', 'deployment-ready':'pill.deploymentReady', cancelled:'pill.cancelled',
 };
 function stateLabel(v){ const k = STATE_LABEL_KEYS[v]; return k ? t(k) : v; }
 function pillForStatus(v){
   if(v==='deployment-ready') return '<span class="pill pill-gold">'+t('pill.deploymentReady')+'</span>';
   if(v==='graduated') return '<span class="pill pill-success">'+t('pill.graduated')+'</span>';
   if(v==='withdrawn') return '<span class="pill pill-danger">'+t('pill.withdrawn')+'</span>';
-  return '<span class="pill pill-accent">'+t('pill.active')+'</span>';
+  return '<span class="pill pill-accent">'+t('pill.inTraining')+'</span>';
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1919,6 +1941,11 @@ function pillForStatus(v){
 /* ---------------------------------------------------------------------- */
 
 function render(){
+  // Skip background-poll-triggered re-renders while a modal is open -- see
+  // the note above openModal(). A render() call made because the user just
+  // closed the modal (closeModal() calls render() itself) always goes
+  // through, since activeModal is already false by then.
+  if(modalIsOpen()) return;
   if(!state.currentStaff){ renderLogin(); return; }
   // Some accounts (e.g. ones created or reset by an administrator on someone
   // else's behalf) are flagged to require a fresh, self-chosen password
@@ -2150,7 +2177,20 @@ onUnauthorized = function(){ doLogout(); toast(t('toast.sessionExpired')); };
 /* modal helper                                                            */
 /* ---------------------------------------------------------------------- */
 
+// A modal is its own DOM root (modalRoot) that render() never rewrites, so
+// in principle a background poll re-render can't touch what's typed into an
+// open form. In practice, every background collection poll (~8s each, many
+// collections) still calls render() behind the open modal, which does real
+// work (rebuilds the whole shell + current page) for no visible benefit and
+// has caused real bugs before (see renderSpreadsheetReportingCard's history)
+// when something *was* briefly rendered outside a modal. modalIsOpen() lets
+// render() skip that pointless work entirely while a modal is up -- nothing
+// under the overlay is visible anyway, and the moment the modal closes
+// (submit success or cancel) the next data refresh repaints normally.
+let activeModal = false;
+function modalIsOpen(){ return activeModal; }
 function openModal({title, bodyHtml, submitLabel, onSubmit, wide}){
+  activeModal = true;
   modalRoot.innerHTML =
     '<div class="modal-overlay" id="modal-overlay"><div class="modal" style="'+(wide?'max-width:680px;':'')+'">' +
       '<div class="modal-head"><h3 style="font-size:16px;">'+esc(title)+'</h3><button class="modal-close" id="modal-close">&times;</button></div>' +
@@ -2165,11 +2205,11 @@ function openModal({title, bodyHtml, submitLabel, onSubmit, wide}){
     const btn = document.getElementById('modal-submit');
     if(btn){ btn.disabled = true; }
     try { await onSubmit(); }
-    catch(e){ toast(e && e.message ? e.message : 'Something went wrong — please try again'); }
+    catch(e){ toast(e && e.message ? e.message : t('toast.somethingWentWrong')); }
     finally { if(btn){ btn.disabled = false; } }
   });
 }
-function closeModal(){ modalRoot.innerHTML=''; }
+function closeModal(){ modalRoot.innerHTML=''; activeModal = false; render(); }
 
 /* ---------------------------------------------------------------------- */
 /* dashboard                                                               */
@@ -2186,7 +2226,48 @@ function bindBranchSwitcher(){
   if(el) el.addEventListener('change', ()=>{ state.branchFilter = el.value; render(); });
 }
 
+// Non-admin dashboard: jump straight to the branch's current (active) batch
+// with its roster, an "Add new student" button right at the top, and older
+// batches listed below as a clickable list -- rather than the cross-branch
+// stat/finance overview admins see. If more than one batch is active, the
+// most recently started one is "current" (state.cohorts is already sorted
+// newest-first); the rest, active or not, are "previous batches" below.
+function renderStaffDashboard(main){
+  const cohorts = scopedCohorts();
+  const current = cohorts.find(c=>c.status==='active') || null;
+  const others = current ? cohorts.filter(c=>c.id!==current.id) : cohorts;
+  const roster = current ? traineesOfCohort(current.id) : [];
+  const canAddTrainee = isAdmin()||hasPerm('trainees');
+  main.innerHTML =
+    '<div class="topbar"><div><h1>'+t('dash.title')+'</h1><div class="desc">'+esc(branchName(state.currentStaff.branchId))+'</div></div>' +
+      (canAddTrainee ? '<div class="topbar-actions"><button class="btn btn-primary" id="btn-add-student-dash">'+t('trainees.enrollBtn')+'</button></div>' : '') +
+    '</div>' +
+    (current ?
+      '<div class="card">' +
+        '<div class="card-head"><div><h2>'+esc(current.code)+'</h2><div class="sub">'+t('dash.inTrainingSub')+'</div></div>' +
+          '<button class="btn btn-sm btn-ghost" data-open-cohort="'+current.id+'">'+t('dash.viewBatch')+'</button></div>' +
+        cohortStatsHtml(roster) +
+        (roster.length ? traineesTable(roster) : '<div class="empty-state">'+t('dash.noTraineesInBatch')+'</div>') +
+      '</div>'
+    : '<div class="card"><div class="card-head"><h2>'+t('dash.noCurrentBatchTitle')+'</h2></div><div class="empty-state">'+t('dash.noCurrentBatchDesc')+'</div></div>') +
+    (others.length ?
+      '<div class="card">' +
+        '<div class="card-head"><h2>'+t('dash.previousBatchesTitle')+'</h2></div>' +
+        cohortsTable(others, {hideRevenue:true}) +
+      '</div>'
+    : '');
+  document.querySelectorAll('[data-open-cohort]').forEach(el=>el.addEventListener('click', ()=>{ state.cohortDetail = el.dataset.openCohort; render(); }));
+  document.querySelectorAll('[data-open-trainee]').forEach(el=>el.addEventListener('click', ()=>{ state.traineeDetail = el.dataset.openTrainee; render(); }));
+  const addBtn = document.getElementById('btn-add-student-dash');
+  if(addBtn) addBtn.addEventListener('click', ()=>openTraineeForm(null, current));
+}
+
 function renderDashboard(main){
+  // Admins keep the full operational + financial overview below. Everyone
+  // else gets a leaner, batch-first view instead (see renderStaffDashboard):
+  // no revenue/profit figures, and the current batch's roster front and
+  // center rather than a cross-branch summary they can't act on anyway.
+  if(!isAdmin()){ renderStaffDashboard(main); return; }
   const trainees = scopedTrainees();
   const cohorts = scopedCohorts();
   const rooms = scopedDormRooms();
@@ -2236,19 +2317,20 @@ function cohortRevenueFigure(c){
   const n = batchNumFromCode(c.code);
   return n!=null ? sumAmt(liveRevenueForBatch(n)) : null;
 }
-function cohortsTable(cohorts){
+function cohortsTable(cohorts, opts){
+  const hideRevenue = opts && opts.hideRevenue;
   if(!cohorts.length) return '<div class="empty-state">'+t('dash.noBatchesYet')+'</div>';
-  return '<div class="table-wrap"><table class="tbl"><thead><tr><th>'+t('col.batch')+'</th><th>'+t('col.branch')+'</th><th>'+t('col.track')+'</th><th>'+t('col.trainees')+'</th><th>'+t('col.start')+'</th><th>'+t('col.status')+'</th><th>'+t('col.revenue')+'</th></tr></thead><tbody>' +
+  return '<div class="table-wrap"><table class="tbl"><thead><tr><th>'+t('col.batch')+'</th><th>'+t('col.branch')+'</th><th>'+t('col.track')+'</th><th>'+t('col.trainees')+'</th><th>'+t('col.start')+'</th><th>'+t('col.status')+'</th>'+(hideRevenue?'':'<th>'+t('col.revenue')+'</th>')+'</tr></thead><tbody>' +
     cohorts.map(c => {
       const n = traineesOfCohort(c.id).length;
       return '<tr class="clickable" data-open-cohort="'+c.id+'"><td class="row-name">'+esc(c.code)+'</td><td>'+esc(branchName(c.branchId))+'</td><td>'+esc(c.track)+'</td>' +
-        '<td class="num">'+n+'</td><td>'+fmtDate(c.startDate)+'</td><td>'+statusPillCohort(c.status)+'</td><td class="num">'+fmtBirr(cohortRevenueFigure(c))+'</td></tr>';
+        '<td class="num">'+n+'</td><td>'+fmtDate(c.startDate)+'</td><td>'+statusPillCohort(c.status)+'</td>'+(hideRevenue?'':'<td class="num">'+fmtBirr(cohortRevenueFigure(c))+'</td>')+'</tr>';
     }).join('') + '</tbody></table></div>';
 }
 function statusPillCohort(s){
   if(s==='graduated') return '<span class="pill pill-success">'+t('pill.graduated')+'</span>';
   if(s==='cancelled') return '<span class="pill pill-danger">'+t('pill.cancelled')+'</span>';
-  return '<span class="pill pill-accent">'+t('pill.active')+'</span>';
+  return '<span class="pill pill-accent">'+t('pill.inTraining')+'</span>';
 }
 // A fuller at-a-glance overview for a batch's detail page: payment and
 // document-readiness stats across the whole roster, visible above every
@@ -2391,6 +2473,20 @@ function openTraineeForm(existing, presetCohort){
         '<div class="field"><label>'+t('form.feeAmountEtb')+'</label><input type="number" id="f-fee" value="'+esc(existing?(existing.feeAmount!=null?existing.feeAmount:''):defaultTuitionFee())+'"></div>' +
         '<div class="field"><div class="hint" style="margin-top:22px;">'+t('form.feeHint')+'</div></div>' +
       '</div>' +
+      (!existing ?
+        '<div class="field-row" style="margin-top:4px;padding-top:12px;border-top:1px solid var(--border);">' +
+          '<div class="field" style="flex:0 0 100%;"><label style="font-weight:700;">'+t('section.firstPayment')+'</label><div class="hint" style="margin-top:2px;">'+t('hint.firstPaymentOptional')+'</div></div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>'+t('form.amountReceived')+'</label><input type="number" id="f-pay-amount" value="0"></div>' +
+          '<div class="field"><label>'+t('col.date')+'</label>'+ecDateFieldHtml('f-pay-date', todayStr())+'</div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>'+t('form.method')+'</label><select id="f-pay-method">'+PAYMENT_METHODS.map(m=>'<option value="'+m+'">'+esc(paymentMethodLabel(m))+'</option>').join('')+'</select></div>' +
+          '<div class="field"><label>'+t('form.receiptReference')+'</label><input id="f-pay-ref"></div>' +
+        '</div>' +
+        '<div class="hint" id="f-pay-remaining-hint" style="margin-bottom:4px;"></div>'
+      : '') +
       '<div class="field-row">' +
         '<div class="field"><label>'+t('form.idKebeleCard')+'</label><select id="f-id">'+DOC_STATES.map(s=>'<option value="'+s+'"'+(existing?.idStatus===s?' selected':'')+'>'+esc(stateLabel(s))+'</option>').join('')+'</select></div>' +
         '<div class="field"><label>'+t('form.medicalClearance')+'</label><select id="f-medical">'+DOC_STATES.map(s=>'<option value="'+s+'"'+(existing?.medicalStatus===s?' selected':'')+'>'+esc(stateLabel(s))+'</option>').join('')+'</select></div>' +
@@ -2422,14 +2518,54 @@ function openTraineeForm(existing, presetCohort){
         const r = await state.db.collection('trainees').doc(existing.id).update(body);
         toast(r && r.queued ? t('toast.traineeUpdatedOffline') : t('toast.traineeUpdated'));
       } else {
-        body.cocStatus='not-started'; body.dormRoomId=null; body.bedNumber=''; body.payments=[]; body.paymentStatus=''; body.paymentAmount=0; body.paymentDate=''; body.receiptRef=''; body.paymentNotes='';
+        body.cocStatus='not-started'; body.dormRoomId=null; body.bedNumber='';
+        // First payment, collected right in the enrollment form instead of a
+        // separate step -- see the "First payment" section above. Folded
+        // into the same create-trainee write so a brand-new trainee never
+        // has a moment with no payment record at all.
+        const payAmt = Number(document.getElementById('f-pay-amount')?.value) || 0;
+        const feeAmount = body.feeAmount!=null ? body.feeAmount : defaultTuitionFee();
+        let paymentEntry = null;
+        if(payAmt > 0){
+          paymentEntry = {
+            id:newLocalId(), amount:payAmt, date:document.getElementById('f-pay-date').value||todayStr(),
+            method:document.getElementById('f-pay-method').value, receiptRef:document.getElementById('f-pay-ref').value.trim(),
+            notes:'', recordedBy:state.currentStaff.name, recordedAt:new Date().toISOString(),
+          };
+        }
+        body.payments = paymentEntry ? [paymentEntry] : [];
+        body.paymentAmount = payAmt;
+        body.paymentStatus = payAmt<=0 ? 'Not Paid' : (feeAmount>0 && payAmt>=feeAmount ? 'Paid' : 'Paid - Verify');
+        body.paymentDate = paymentEntry ? paymentEntry.date : '';
+        body.receiptRef = paymentEntry ? paymentEntry.receiptRef : '';
+        body.paymentNotes = '';
         const r = await state.db.collection('trainees').add(body);
         toast(r && r.queued ? t('toast.traineeEnrolledOffline') : t('toast.traineeEnrolled'));
+        if(paymentEntry && r && r.id){
+          try {
+            const c = cohortById(body.cohortId);
+            await state.db.collection('revenueLog').add({
+              date:paymentEntry.date, category:'Tuition Fees', description:'Tuition payment — '+name+(c?(' ('+c.code+')'):''),
+              amount:payAmt, batchNum: c?batchNumFromCode(c.code):null, notes:'', traineeId:r.id,
+            });
+          } catch(e) { /* don't block enrollment if the auto revenue-log entry fails */ }
+        }
       }
       closeModal();
     }
   });
   bindEcDateField('f-intake');
+  if(!existing){
+    bindEcDateField('f-pay-date');
+    const feeEl = document.getElementById('f-fee'), payEl = document.getElementById('f-pay-amount'), hintEl = document.getElementById('f-pay-remaining-hint');
+    const syncRemainingHint = () => {
+      const fee = Number(feeEl.value)||0, paying = Number(payEl.value)||0;
+      hintEl.textContent = t('hint.remainingAfterThisPayment', {fee:fmtBirr(fee), paying:fmtBirr(paying), remaining:fmtBirr(Math.max(0,fee-paying))});
+    };
+    feeEl.addEventListener('input', syncRemainingHint);
+    payEl.addEventListener('input', syncRemainingHint);
+    syncRemainingHint();
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -3314,7 +3450,7 @@ function renderReports(main){
     '<div class="topbar"><div><h1>'+t('nav.reports')+'</h1><div class="desc">'+t('reports.desc')+'</div></div>' +
       '<div class="topbar-actions"><button class="btn btn-primary" id="btn-export">'+t('btn.exportTraineesCsv')+'</button></div></div>' +
     '<div class="card"><div class="card-head"><h2>'+t('card.branchComplianceSummary')+'</h2></div>' +
-      '<div class="table-wrap"><table class="tbl"><thead><tr><th>'+t('col.branch')+'</th><th>'+t('label.total')+'</th><th>'+t('pill.active')+'</th><th>'+t('pill.paid')+'</th><th>'+t('col.docsFullyCleared')+'</th><th>'+t('pill.cocPassed')+'</th></tr></thead><tbody>' +
+      '<div class="table-wrap"><table class="tbl"><thead><tr><th>'+t('col.branch')+'</th><th>'+t('label.total')+'</th><th>'+t('pill.inTraining')+'</th><th>'+t('pill.paid')+'</th><th>'+t('col.docsFullyCleared')+'</th><th>'+t('pill.cocPassed')+'</th></tr></thead><tbody>' +
       Object.values(byBranch).map(r=>'<tr><td class="row-name">'+esc(r.name)+'</td><td class="num">'+r.total+'</td><td class="num">'+r.active+'</td><td class="num">'+r.paid+'</td><td class="num">'+r.docsReady+'</td><td class="num">'+r.cocPassed+'</td></tr>').join('') +
       '</tbody></table></div></div>' +
     renderBatchReportingCard() +
